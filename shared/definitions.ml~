@@ -81,7 +81,7 @@ type steammon = {
   third_attack: attack;
   fourth_attack: attack;
   attack: int;
-	spl_attack: int;
+	spl_attack : int;
   defense: int;
 	spl_defense: int;
   speed: int;
