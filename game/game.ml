@@ -3,8 +3,38 @@ open Util
 open Constants
 open Netgraphics
 
-(* You have to implement this. Change it from int to yout own state type*)
-type game = int 
+type game = State of (player * player) | Null 
+type player = (steammon list * inventory)
+type steammon = (steamtypes * (attack * int) list * stats * status)
+type steamtypes = Single of steamtype | Dual of steamtype * steamtype
+type steamtype = 
+	| Normal
+	| Fire
+	| Water
+	| Grass
+	| Electric
+	| Ice
+	| Fighting
+	| Poison
+	| Ground
+	| Flying
+	| Psychic
+	| Bug
+	| Rock
+	| Ghost
+	| Dragon
+	| Dark
+	| Steel
+type attack = steamtype * int * 
+type item =
+	| Ether
+	| MaxPotion
+	| Revive
+	| FullHeal
+	| XAttack
+	| XDefense
+	| XSpeed
+	| XAccuracy
 
 let game_datafication g =
 	failwith "not implemented"
