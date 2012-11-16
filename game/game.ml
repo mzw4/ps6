@@ -10,7 +10,7 @@ type phase =
   | Inventory
   | Battle
 
-type game = phase * state | Null 
+type game = phase * State.state
 
 let game_datafication g =
 	failwith "not implemented"
@@ -18,8 +18,21 @@ let game_datafication g =
 let game_from_data game_data = 
 	failwith "not implemented"
 
-let handle_step g ra ba =
-	failwith "implement me!"
+let handle_step (g:game) (ra: command) (ba: command) : game_output =
+	(phase, state) = g
+	match phase with
+	| Init -> begin
+		
+		end
+	| Draft -> begin
+		
+		end
+	| Inventory -> begin
+		
+		end
+	| Battle -> begin
+		
+		end
 
 let init_game () =
 	failwith "implement me!"
