@@ -9,12 +9,11 @@ type phase =
   | Inventory
   | Battle
 
-type game = phase * State.state
+type game = State.state
 
 
 let game_datafication (g:game) : game_status_data =
-	(phase, state) = g in
-	
+	failwith "not implemented"
 	
 	
 let game_from_data (game_data:game_status_data) : game  = 
@@ -24,20 +23,18 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
 	let (phase, state) = g in
 	let helper (c:command) (s:state) : state =
 		match c with
-		| Action act -> 
-			match phase with
-			| Draft ->
-				match act with
-				| PickSteammon -> 
-					(* implement this *)
-					failwith ""
-				| _ -> failwith "action not available for current phase"
-			| Inventory ->
-				match act with
-				| PickInventory ->
-					(* implement this *)
-				| _ -> failwith "action not available for current phase"
-			| 	
+		| Action act -> match act with
+			| PickSteammon str -> 
+				(* implement this *)
+			| PickInventory inventory ->
+				(* implement this *)
+			| SelectStarter str ->
+				(* implement this *)
+			| SwitchSteammon str ->
+				(* implement this *)
+			| UseItem (item, str) ->
+				(* implement this *)	
+			| UseAttack str ->
 		| _ -> s (* ignores command and returns current state *)
 	in	 
 	failwith ""
