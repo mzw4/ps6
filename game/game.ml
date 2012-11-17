@@ -28,8 +28,17 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
 			match phase with
 			| Draft ->
 				match act with
-				| 
-		| _ -> failwith ""
+				| PickSteammon -> 
+					(* implement this *)
+					failwith ""
+				| _ -> failwith "action not available for current phase"
+			| Inventory ->
+				match act with
+				| PickInventory ->
+					(* implement this *)
+				| _ -> failwith "action not available for current phase"
+			| 	
+		| _ -> s (* ignores command and returns current state *)
 	in	 
 	failwith ""
 

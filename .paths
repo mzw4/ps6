@@ -61,3 +61,5 @@ game
 .git/logs/refs/remotes/origin
 .git/logs/refs/heads
 /usr/local/lib/ocaml
+data
+data/pokemon
