@@ -83,8 +83,6 @@ let init_game () =
       | _ -> failwith "incorrect attack input format"
     ) [] slines in
 
-  let init_inventory = [0;0;0;0;0;0;0;0] in
-  game.game_data <- (([], init_inventory), ([], init_inventory));
   let first_pick = 
     if (Random.float 1) > 0.5 then Red else Blue in
   (game, first_pick, attacks, steammon)
