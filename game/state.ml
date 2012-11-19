@@ -36,6 +36,20 @@ let add_steammon (st: state) (team: color) (st: steammon) : unit =
 	| Red -> set_game_data st ((helper red_data), blue_data);
 	| Blue -> set_game_data st (red_data, (helper blue_data);
 
+let switch_steammon (st: state) (team: color) (st: steammon) : unit =
+	let (red_data, blue_data) = st.game_data in
+	let helper (t_data: team_data) : team_data =
+		let (lst, inventory) = t_data in
+		if (List.mem st lst) then
+			let tl = List.fold_left (fun a x -> if (x = st) then a else x::a) [] lst in
+			(st::tl, inventory)
+		else
+			failwith "Steammon selected is not in the team."
+	in	
+	match team with 
+	| Red -> set_game_data st ((helper red_data), blue_data);
+	| Blue -> set_game_data st (red_data, (helper blue_data);
+
 (* Adds an item to a team's inventory *)	
 let add_item (st: state) (team: color) (i: item) : unit =
 	let (red_data, blue_data) = st.game_data in
@@ -85,7 +99,7 @@ let remove_item (st: state) (team: color) (i: item) : unit =
 	match team with
 	| Red -> set_game_data st ((helper red_data), blue_data);
 	| Blue -> set_game_data st (red_data, (helper blue_data);
-	
+
 
 	
 	
