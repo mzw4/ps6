@@ -18,9 +18,9 @@ type phase =
 let create : state = 
   {current_phase = Init;
   game_data = (([], [0;0;0;0;0;0;0;0]), ([], [0;0;0;0;0;0;0;0]));
-	undrafted_steammon = None;
+  undrafted_steammon = None;
   }
-	
+  
 let set_phase (st: state) (ph: phase) : unit =
   st.phase <- ph;
 
@@ -32,15 +32,15 @@ let set_game_data (st: state) (data: game_status_data) : unit =
 let add_steammon (st: state) (team: color) (st: steammon) : unit =
   let (red_data, blue_data) = st.game_data in
   let helper (t_data: team_data) : team_data =
-		match st.undrafted_steammon with
-		| Some available->
-  		if (List.mem st available) then 
+    match st.undrafted_steammon with
+    | Some available->
+      if (List.mem st available) then 
         let (lst, inventory) = t_data in
-  			available <- Some (List.fold_left (fun a x -> if (x = st) then a else x::a) [] available)
+        available <- Some (List.fold_left (fun a x -> if (x = st) then a else x::a) [] available)
         (st::lst, inventory)
-  		else 
-  			failwith "Steammon is not able to be selected"			
-		| None -> failwith "There are no steammon able to be picked"
+      else 
+        failwith "Steammon is not able to be selected"      
+    | None -> failwith "There are no steammon able to be picked"
   in
   match team with
   | Red -> set_game_data st ((helper red_data), blue_data)
@@ -121,11 +121,11 @@ let attack (st: state) (team: color) (a: attack) : unit =
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
     if ((starter.first_attack ~= a) && (starter.second_attack ~= a) && 
-		  (starter.third_attack ~= a) && (starter.fourth_attack ~= a))
-		then failwith "The starting steammon does not have this attack"
+      (starter.third_attack ~= a) && (starter.fourth_attack ~= a))
+    then failwith "The starting steammon does not have this attack"
   in
   let defender_helper (t_data: team_data) : team_data = 
-		let (
+    let (
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
   
