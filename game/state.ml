@@ -62,6 +62,14 @@ let switch_steammon (st: state) (team: color) (st: steammon) : unit =
   | Red -> set_game_data st ((helper red_data), blue_data);
   | Blue -> set_game_data st (red_data, (helper blue_data);
 
+(* Sets a player's inventory to the specified one *)
+let set_inventory (st: state) (team: color) (inventory: int list) = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  if team = Red then
+    set_game_data st ((r_steammon, inventory), (b_steammon, b_inventory))
+  else 
+    set_game_data st ((r_steammon, r_inventory), (b_steammon, inventory))
+
 (* Adds an item to a team's inventory *)  
 let add_item (st: state) (team: color) (i: item) : unit =
   let (red_data, blue_data) = st.game_data in
