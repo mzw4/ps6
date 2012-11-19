@@ -1,0 +1,53 @@
+cd My Documents/School/Cornell/2012-2013/CS 3110/ps6/game/
+
+./game/attack.txt
+
+
+
+
+
+
+let init_game () =
+  let alines = read_lines "./game/attack.txt" in
+  (* construct an attack list *)
+  let attacks = 
+    List.fold_left (fun acc line -> 
+      match wordify line with
+      | [n; e; pp; pow; acc; crit; eff; eff_chance] ->
+        {name = name; element = type_of_string e; max_pp = int_of_string pp;
+        pp_remaining = int_of_string pp;
+        power = int_of_string pow; accuracy = int_of_string acc;
+        crit_chance = int_of_string crit;
+        effect = (effect_of_num eff) * eff_chance} :: acc
+      | _ -> failwith "incorrect attack input format"
+    ) [] alines in
+  let attacktbl =
+   let tbl = Hashtbl.create 200 in
+   List.fold_left (fun acc x -> Hashtbl.add tbl x.name x) () attacks in
+  let attack_of_string str = Hashtbl.find tbl str in
+  let slines = read_lines "./game/attack.txt" in
+  (* construct a steammon list *)
+  let steammon = 
+    List.fold_left (fun acc line -> 
+      match wordify line with
+      | [s; hp; t1; t2; a1; a2; a3; a4; a; sa; d; sd; sp]  ->
+        {species = s; curr_hp = hp; max_hp = hp;
+         first_type = match t1 with "Nothing" -> None | _ -> type_of_string t1;
+         second_type = match t2 with "Nothing" -> None | _ -> type_of_string t2;
+         first_attack = attack_of_string a1; second_attack = attack_of_string a2;
+         third_attack = attack_of_string a3; fourth_attack = attack_of_string a4;
+         attack = int_of_string a; spl_attack = int_of_string sa;
+         defense = int_of_string d; spl_defense = int_of_string sd;
+         speed = int_of_string sp;
+         status = []; mods = {attack_mod = 0; speed_mod = 0; defense_mod = 0;
+         accuracy_mod = 0}} :: acc
+      | _ -> failwith "incorrect attack input format"
+    ) [] slines in
+  let init_inventory = [0;0;0;0;0;0;0;0] in
+  game.game_data <- (([], init_inventory), ([], init_inventory));
+  let first_pick = 
+    if (Random.float 1) > 0.5 then Red else Blue in
+  (game, first_pick, attacks, steammon)
+
+
+  

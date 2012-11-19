@@ -6,7 +6,7 @@ open Netgraphics
 type state = {
   mutable current_phase: phase;
   mutable game_data: game_status_data;
-  mutable undrafted_steammon: steammon list option;
+	mutable undrafted_steammon: steammon list option;
   }
   
 type phase = 
