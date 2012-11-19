@@ -31,13 +31,15 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
       | PickSteammon str -> 
         State.add_steammon game team (Hashtbl.find steammon_tbl str)
       | PickInventory inventory ->
-        (* implement this *)
+        State.set_inventory game team inventory
       | SelectStarter str ->
         State.switch_steammon game team (Hashtbl.find steammon_tbl str)
       | SwitchSteammon str ->
         State.switch_steammon game team (Hashtbl.find steammon_tbl str)
       | UseItem (item, str) ->
+        State.use_item item (Hashtbl.find steammon_tbl str)
       | UseAttack str ->
+        State.attack game team (Hashtbl.find attack_tbl)
     | _ -> s (* ignores command and returns current state *)
   in   
   failwith ""
