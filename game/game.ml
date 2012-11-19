@@ -14,30 +14,30 @@ type game = State.state
 let game = State.create ()
 
 let game_datafication (g:game) : game_status_data =
-  match g with {game_data = data} -> data	
-	
+  match g with {game_data = data} -> data  
+  
 let game_from_data (game_data:game_status_data) : game  = 
   game.game_data <- game_data
 
 let handle_step (g:game) (ra:command) (ba:command) : game_output =
-	let (phase, state) = g in
-	let helper (c:command) (s:state) : state =
-		match c with
-		| Action act -> match act with
-			| PickSteammon str -> 
-				(* implement this *)
-			| PickInventory inventory ->
-				(* implement this *)
-			| SelectStarter str ->
-				(* implement this *)
-			| SwitchSteammon str ->
-				(* implement this *)
-			| UseItem (item, str) ->
-				(* implement this *)	
-			| UseAttack str ->
-		| _ -> s (* ignores command and returns current state *)
-	in	 
-	failwith ""
+  let (phase, state) = g in
+  let helper (c:command) (s:state) : state =
+    match c with
+    | Action act -> match act with
+      | PickSteammon str -> 
+        (* implement this *)
+      | PickInventory inventory ->
+        (* implement this *)
+      | SelectStarter str ->
+        (* implement this *)
+      | SwitchSteammon str ->
+        (* implement this *)
+      | UseItem (item, str) ->
+        (* implement this *)  
+      | UseAttack str ->
+    | _ -> s (* ignores command and returns current state *)
+  in   
+  failwith ""
 
 let init_game () =
   let alines = read_lines "./game/attack.txt" in
