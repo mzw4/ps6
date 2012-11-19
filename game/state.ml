@@ -5,7 +5,8 @@ open Netgraphics
 
 type state = {
   mutable current_phase: phase;
-  mutable game_data: game_status_data option;
+  mutable game_data: game_status_data;
+	mutable undrafted_steammon: steammon list option;
   }
   
 type phase = 
@@ -16,25 +17,34 @@ type phase =
 
 let create : state = 
   {current_phase = Init;
-  game_data = None;
+  game_data = (([], [0;0;0;0;0;0;0;0]), ([], [0;0;0;0;0;0;0;0]));
+	undrafted_steammon = None;
   }
-
+	
 let set_phase (st: state) (ph: phase) : unit =
   st.phase <- ph;
 
 let set_game_data (st: state) (data: game_status_data) : unit =
   st.game_data <- data;
 
-(* Adds a steammon to a team's steammon list *)
+(* Adds a steammon to a team's steammon list. *)
+(* Throws an exception if that steammon is not in the draftable list*)
 let add_steammon (st: state) (team: color) (st: steammon) : unit =
   let (red_data, blue_data) = st.game_data in
-  let helper (t_data: team_data) : team_data = 
-    let (lst, inventory) = t_data in
-    (st::lst, inventory)
+  let helper (t_data: team_data) : team_data =
+		match st.undrafted_steammon with
+		| Some available->
+  		if (List.mem st available) then 
+        let (lst, inventory) = t_data in
+  			available <- Some (List.fold_left (fun a x -> if (x = st) then a else x::a) [] available)
+        (st::lst, inventory)
+  		else 
+  			failwith "Steammon is not able to be selected"			
+		| None -> failwith "There are no steammon able to be picked"
   in
   match team with
-  | Red -> set_game_data st ((helper red_data), blue_data);
-  | Blue -> set_game_data st (red_data, (helper blue_data);
+  | Red -> set_game_data st ((helper red_data), blue_data)
+  | Blue -> set_game_data st (red_data, (helper blue_data)
 
 (* Switches a steammon so it appears at the head of a the steammon list. *)
 (* Throws an exception if that steammon is not in the list. *)
@@ -110,9 +120,12 @@ let attack (st: state) (team: color) (a: attack) : unit =
   let attacker_helper (t_data: team_data) : team_data = 
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
-    (
+    if ((starter.first_attack ~= a) && (starter.second_attack ~= a) && 
+		  (starter.third_attack ~= a) && (starter.fourth_attack ~= a))
+		then failwith "The starting steammon does not have this attack"
   in
   let defender_helper (t_data: team_data) : team_data = 
+		let (
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
   
