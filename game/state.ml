@@ -128,11 +128,21 @@ let attack (st: state) (team: color) (a: attack) : unit =
   let attacker_helper (t_data: team_data) : team_data = 
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
-    if ((starter.first_attack ~= a) && (starter.second_attack ~= a) && 
-      (starter.third_attack ~= a) && (starter.fourth_attack ~= a))
-    then failwith "The starting steammon does not have this attack"
+    let nth = match a with
+		| starter.first_attack -> 1
+		| starter.second_attack -> 2
+		| starter.third_attack -> 3
+		| starter.fourth_attack -> 4
+		| _ -> failwith "Steammon does not have that attack"
+		in
+		else
+			
   in
-  let defender_helper (t_data: team_data) : team_data = 
+	let calcualte_attack (t_data: team_data) = 
+		let (lstm inventory) = t_data in
+		let starter = List.hd lst in
+	
+  let defender_helper (t_data: team_data) (i: int): team_data = 
     let (
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
@@ -141,6 +151,5 @@ let attack (st: state) (team: color) (a: attack) : unit =
   match team with
   | Red -> set_game_data st ((attacker_helper red_data), (defender_helper blue_data))
   | Blue -> set_game_data st ((defender_helper red_data), (attacker_helper blue_data))
-
   
   

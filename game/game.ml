@@ -41,7 +41,7 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
       | UseAttack str ->
         State.attack game team (Hashtbl.find attack_tbl)
     | _ -> s (* ignores command and returns current state *)
-  in   
+  in
   failwith ""
 
 let init_game () =
