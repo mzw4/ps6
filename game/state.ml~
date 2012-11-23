@@ -15,10 +15,10 @@ type phase =
   | SelectItems
   | Battle
 
-let create : state = 
+let create (steammon: Hashtbl.t) : state = 
   {current_phase = Init;
   game_data = (([], [0;0;0;0;0;0;0;0]), ([], [0;0;0;0;0;0;0;0]));
-  undrafted_steammon = None;
+  undrafted_steammon = steammon;
   }
   
 let set_phase (st: state) (ph: phase) : unit =
@@ -45,6 +45,16 @@ let add_steammon (st: state) (team: color) (st: steammon) : unit =
   match team with
   | Red -> set_game_data st ((helper red_data), blue_data)
   | Blue -> set_game_data st (red_data, (helper blue_data)
+
+
+(* Indicates if a team is full and finished with the draft step *)
+let team_full (st: state) (team: color) = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let r_num = List.length r_steammon in
+  let b_num = List.length b_steammon in
+  if r_num > cNUM_PICKS || b_num > cNUM_PICKS then failwith "drafted too many pkmns wtf"
+  else (team = Red && r_num = cNUM_PICKS) || (team = Blue && b_num = cNUM_PICKS)
+
 
 (* Switches a steammon so it appears at the head of a the steammon list. *)
 (* Throws an exception if that steammon is not in the list. *)
@@ -275,5 +285,20 @@ let attack (st: state) (team: color) (a: attack) : unit =
 	((attacker_helper red_data), (defender_helper blue_data (attack_power red_data)))
   | Blue -> set_game_data st 
 	((defender_helper red_data (attack_power blue_data)), (attacker_helper blue_data))
+
+
+(* Indicates if the active steammon of a team has fainted *)
+let active_fainted (st: state) (team: color) = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
   
-  
+
+(* Indicates if there is a winner and the game is over, otherwise returns None *)
+let game_result (st: state) = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let all_fainted (steammon: steammon list) =
+    List.fold_left (fun acc s ->
+      if s.curr_hp <> 0 then false
+      else acc) true steammon in
+  if all_fainted r_steammon then Winner(Blue)
+  else if all_fainted b_steammon then Winner(Red)
+  else None

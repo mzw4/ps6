@@ -27,6 +27,57 @@ let set_phase (st: state) (ph: phase) : unit =
 let set_game_data (st: state) (data: game_status_data) : unit =
   st.game_data <- data;	
 	
+(* Indicates if a team is full and finished with the draft step *)
+let team_full (st: state) (team: color) = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let r_num = List.length r_steammon in
+  let b_num = List.length b_steammon in
+  if r_num > cNUM_PICKS || b_num > cNUM_PICKS then failwith "drafted too many pkmns wtf"
+  else (team = Red && r_num = cNUM_PICKS) || (team = Blue && b_num = cNUM_PICKS)
+
+(* Indicates if the inventory contains the specified item *)
+let inventory_contains (st: state) (team: color) (item: item) = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let contains (inventory: int list) (i: item) = 
+    let [ethers; maxpots; revs; fullhs; xatt; xdef; xspd; xacc] = inventory in
+    match i with 
+    | Ether -> ethers > 0
+    | MaxPotion -> maxpots > 0
+    | Revive -> revs > 0
+    | FullHeal -> fullhs > 0
+    | XAttack -> xatt > 0
+    | XDefense -> xdef > 0
+    | XSpeed -> xspd > 0
+    | XAccuracy -> xacc > 0 in
+  match team with 
+  | Red -> contains r_inventory item
+  | Blue -> contains b_inventory item
+
+(* Indicates if the specified steammon is currently active *)
+let is_active (st: state) (team: color) (steammon: steammon) =
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  match team with 
+  | Red -> (List.hd r_steammon).name = steammon.name
+  | Blue -> (List.hd b_steammon).name = steammon.name
+
+(* Indicates if the active steammon of a team has fainted *)
+let active_fainted (st: state) (team: color) = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in    
+  match team with
+  | Red -> (List.hd r_steammon).curr_hp <= 0
+  | Blue -> (List.hd b_steammon).curr_hp <= 0
+  
+(* Indicates if there is a winner and the game is over, otherwise returns None *)
+let game_result (st: state) = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let all_fainted (steammon: steammon list) =
+    List.fold_left (fun acc s ->
+      if s.curr_hp <> 0 then false
+      else acc) true steammon in
+  if all_fainted r_steammon then Winner(Blue)
+  else if all_fainted b_steammon then Winner(Red)
+  else None
+
 (* Adds a steammon to a team's steammon list. *)
 (* Throws an exception if that steammon is not in the draftable list*)
 let add_steammon (st: state) (team: color) (st: steammon) : unit =
@@ -36,7 +87,8 @@ let add_steammon (st: state) (team: color) (st: steammon) : unit =
     | Some available->
       if (List.mem st available) then 
         let (lst, inventory) = t_data in
-        available <- Some (List.fold_left (fun a x -> if (x = st) then a else x::a) [] available) in
+        available <- Some(List.fold_left
+          (fun a x -> if (x = st) then a else x::a) [] available) in
         (st::lst, inventory)
       else 
         failwith "Steammon is not able to be selected"      
@@ -45,15 +97,6 @@ let add_steammon (st: state) (team: color) (st: steammon) : unit =
   match team with
   | Red -> set_game_data st ((helper red_data), blue_data)
   | Blue -> set_game_data st (red_data, (helper blue_data)
-
-
-(* Indicates if a team is full and finished with the draft step *)
-let team_full (st: state) (team: color) = 
-  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
-  let r_num = List.length r_steammon in
-  let b_num = List.length b_steammon in
-  if r_num > cNUM_PICKS || b_num > cNUM_PICKS then failwith "drafted too many pkmns wtf"
-  else (team = Red && r_num = cNUM_PICKS) || (team = Blue && b_num = cNUM_PICKS)
 
 
 (* Switches a steammon so it appears at the head of a the steammon list. *)
@@ -75,30 +118,36 @@ let switch_steammon (st: state) (team: color) (st: steammon) : unit =
 (* Sets a player's inventory to the specified one *)
 let set_inventory (st: state) (team: color) (inventory: int list) = 
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
-  if team = Red then
-    set_game_data st ((r_steammon, inventory), (b_steammon, b_inventory))
-  else 
-    set_game_data st ((r_steammon, r_inventory), (b_steammon, inventory))
+  match team with 
+  | Red -> set_game_data st ((r_steammon, inventory), (b_steammon, b_inventory))
+  | Blue -> set_game_data st ((r_steammon, r_inventory), (b_steammon, inventory))
 
 (* Adds an item to a team's inventory *)  
 let add_item (st: state) (team: color) (i: item) : unit =
   let (red_data, blue_data) = st.game_data in
   let helper (t_data: team_data) : team_data =
     let (lst, inventory) = t_data in
-    let [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses; xSpeeds; xAccuracies] = inventory in
+    let [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses;
+      xSpeeds; xAccuracies] = inventory in
     let newInventory = 
     match i with
-      | Ether -> [(ethers + 1) ; maxPotions; revives; fullHeals; xAttacks; xDefenses; xSpeeds; xAccuracies]
-      | MaxPotion -> [ethers; (maxPotions + 1); revives; fullHeals; xAttacks; xDefenses; xSpeeds; xAccuracies]
-      | Revive -> [ethers; maxPotions; (revives + 1); fullHeals; xAttacks; xDefenses; xSpeeds; xAccuracies]
-      | FullHeal -> [ethers; maxPotions; revives; (fullHeals + 1); xAttacks; xDefenses; xSpeeds; xAccuracies]
-      | XAttack -> [ethers; maxPotions; revives; fullHeals; (xAttacks + 1); xDefenses; xSpeeds; xAccuracies]
-      | XDefense -> [ethers; maxPotions; revives; fullHeals; xAttacks; (xDefenses + 1); xSpeeds; xAccuracies]
-      | XSpeed -> [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses; (xSpeeds + 1); xAccuracies]
-      | XAccuracy -> [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses; xSpeeds; (xAccuracies + 1)]
-    in
-    (lst, newInventory)
-  in
+      | Ether -> [(ethers + 1) ; maxPotions; revives; fullHeals; xAttacks;
+        xDefenses; xSpeeds; xAccuracies]
+      | MaxPotion -> [ethers; (maxPotions + 1); revives; fullHeals; xAttacks;
+        xDefenses; xSpeeds; xAccuracies]
+      | Revive -> [ethers; maxPotions; (revives + 1); fullHeals; xAttacks;
+        xDefenses; xSpeeds; xAccuracies]
+      | FullHeal -> [ethers; maxPotions; revives; (fullHeals + 1); xAttacks;
+        xDefenses; xSpeeds; xAccuracies]
+      | XAttack -> [ethers; maxPotions; revives; fullHeals; (xAttacks + 1);
+        xDefenses; xSpeeds; xAccuracies]
+      | XDefense -> [ethers; maxPotions; revives; fullHeals; xAttacks;
+        (xDefenses + 1); xSpeeds; xAccuracies]
+      | XSpeed -> [ethers; maxPotions; revives; fullHeals; xAttacks;
+        xDefenses; (xSpeeds + 1); xAccuracies]
+      | XAccuracy -> [ethers; maxPotions; revives; fullHeals; xAttacks;
+        xDefenses; xSpeeds; (xAccuracies + 1)] in
+    (lst, newInventory) in
   match team with
   | Red -> set_game_data st ((helper red_data), blue_data)
   | Blue -> set_game_data st (red_data, (helper blue_data)
@@ -109,23 +158,30 @@ let remove_item (st: state) (team: color) (i: item) : unit =
   let (red_data, blue_data) = st.game_data in
   let helper (t_data: team_data) : team_data =
     let (lst, inventory) = t_data in
-    let [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses; xSpeeds; xAccuracies] = inventory in
+    let [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses;
+      xSpeeds; xAccuracies] = inventory in
     let f (i: int) : int =
       if (i > 0) then i - 1
       else failwith "There are none of that item left"
     let newInventory = 
     match i with
-      | Ether -> [(f ethers) ; maxPotions; revives; fullHeals; xAttacks; xDefenses; xSpeeds; xAccuracies]
-      | MaxPotion -> [ethers; (f maxPotions); revives; fullHeals; xAttacks; xDefenses; xSpeeds; xAccuracies]
-      | Revive -> [ethers; maxPotions; (f revives); fullHeals; xAttacks; xDefenses; xSpeeds; xAccuracies]
-      | FullHeal -> [ethers; maxPotions; revives; (f fullHeals); xAttacks; xDefenses; xSpeeds; xAccuracies]
-      | XAttack -> [ethers; maxPotions; revives; fullHeals; (f xAttacks); xDefenses; xSpeeds; xAccuracies]
-      | XDefense -> [ethers; maxPotions; revives; fullHeals; xAttacks; (f xDefenses); xSpeeds; xAccuracies]
-      | XSpeed -> [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses; (f xSpeeds); xAccuracies]
-      | XAccuracy -> [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses; xSpeeds; (f xAccuracies)]
-    in
-    (lst, newInventory)
-  in
+      | Ether -> [(f ethers) ; maxPotions; revives; fullHeals; xAttacks; xDefenses;
+        xSpeeds; xAccuracies]
+      | MaxPotion -> [ethers; (f maxPotions); revives; fullHeals; xAttacks; xDefenses;
+        xSpeeds; xAccuracies]
+      | Revive -> [ethers; maxPotions; (f revives); fullHeals; xAttacks; xDefenses;
+        xSpeeds; xAccuracies]
+      | FullHeal -> [ethers; maxPotions; revives; (f fullHeals); xAttacks; xDefenses;
+        xSpeeds; xAccuracies]
+      | XAttack -> [ethers; maxPotions; revives; fullHeals; (f xAttacks); xDefenses;
+        xSpeeds; xAccuracies]
+      | XDefense -> [ethers; maxPotions; revives; fullHeals; xAttacks; (f xDefenses);
+        xSpeeds; xAccuracies]
+      | XSpeed -> [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses;
+        (f xSpeeds); xAccuracies]
+      | XAccuracy -> [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses;
+        xSpeeds; (f xAccuracies)] in
+    (lst, newInventory) in
   match team with
   | Red -> set_game_data st ((helper red_data), blue_data)
   | Blue -> set_game_data st (red_data, (helper blue_data)
@@ -287,18 +343,114 @@ let attack (st: state) (team: color) (a: attack) : unit =
 	((defender_helper red_data (attack_power blue_data)), (attacker_helper blue_data))
 
 
-(* Indicates if the active steammon of a team has fainted *)
-let active_fainted (st: state) (team: color) = 
+(* Applies an item effect on a target steammon *)
+let use_item (st: state) (team: color) (item: item) (target: steammon) = 
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
-  
+  let apply (steammon: steammon list) =
+    List.fold_left (fun acc x ->
+    if x.species = target.species || item = XAttack || item = XDefense 
+      || item = XSpeed || item = XAccuracy then 
+      let pp_rem (attack: attack) = 
+        match attack with
+        {max_pp = max; pp_remaining = pp} -> if pp + 5 >= max_pp then max_pp
+        else pp + 5 in
+      (* a steammon with updated values after applying item effects *)
+      let updated_steammon = 
+        {species = target.species;
+        curr_hp =
+          if item = MaxPotion then target.max_hp;
+          else if item = Revive
+            if target.curr_hp = 0 then target.max_hp / 2;
+            else failwith "cannot use revive on a non-fainted steammon"
+          else target.curr_hp;
+        max_hp = target.max_hp;
+        first_type = target.first_type;
+        second_type = target.second_type; 
+        first_attack = 
+          if item = Ether then
+            {name = target.first_attack.name;
+            element = target.first_attack.element;
+            max_pp = target.first_attack.max_pp;
+            pp_remaining = pp_rem (target.first_attack);
+            power = target.first_attack.power;
+            accuracy = target.first_attack.accuracy;
+            crit_chance = target.first_attack.crit_chance;
+            effect = target.first_attack.effect};
+          else target.first_attack;
+        second_attack = 
+          if item = Ether then
+            {name = target.second_attack.name;
+            element = target.second_attack.element;
+            max_pp = target.second_attack.max_pp;
+            pp_remaining = pp_rem (target.second_attack);
+            power = target.second_attack.power;
+            accuracy = target.second_attack.accuracy;
+            crit_chance = target.second_attack.crit_chance;
+            effect = target.second_attack.effect};
+          else target.second_attack;
+        third_attack =
+          if item = Ether then
+            {name = target.third_attack.name;
+            element = target.third_attack.element;
+            max_pp = target.third_attack.max_pp;
+            pp_remaining = pp_rem (target.third_attack);
+            power = target.third_attack.power;
+            accuracy = target.third_attack.accuracy;
+            crit_chance = target.third_attack.crit_chance;
+            effect = target.third_attack.effect};
+          else target.third_attack;
+        fourth_attack =
+          if item = Ether then
+            {name = target.fourth_attack.name;
+            element = target.fourth_attack.element;
+            max_pp = target.fourth_attack.max_pp;
+            pp_remaining = pp_rem (target.fourth_attack);
+            power = target.fourth_attack.power;
+            accuracy = target.fourth_attack.accuracy;
+            crit_chance = target.fourth_attack.crit_chance;
+            effect = target.fourth_attack.effect};
+          else target.fourth_attack;
+        attack = target.attack;
+        spl_attack = target.spl_attack;
+        defense = target.defense;
+        spl_defense = target.spl_defense;
+        speed = target.speed;
+        status = if item = FullHeal then []; else target.status;
+        mods =
+        (* applies mod to active steammon even if target is incorrect *)
+        if is_active st x then 
+          if item = XAttack then 
+            {attack_mod = target.mods.attack_mod + 1;
+            speed_mod = target.mods.speed_mod;
+            defense_mod = target.mods.defense_mod;
+            accuracy_mod = target.mods.accuracy_mod};
+          else if item = XDefense then
+            {attack_mod = target.mods.attack_mod;
+            speed_mod = target.mods.speed_mod;
+            defense_mod = target.mods.defense_mod + 1;
+            accuracy_mod = target.mods.accuracy_mod};
+          else if item = XSpeed then
+            {attack_mod = target.mods.attack_mod;
+            speed_mod = target.mods.speed_mod + 1;
+            defense_mod = target.mods.defense_mod;
+            accuracy_mod = target.mods.accuracy_mod};
+          else if item = XAccuracy then
+            {attack_mod = target.mods.attack_mod;
+            speed_mod = target.mods.speed_mod;
+            defense_mod = target.mods.defense_mod;
+            accuracy_mod = target.mods.accuracy_mod + 1};
+          else target.mods;
+        else target.mods; in
+      updated_steammon::acc
+      else x::acc
+    ) [] steammon in
+  if inventory_contains st Red item then remove_item st Red item;
+    (match team with 
+    | Red -> 
+      set_game_data st
+      ((apply r_steammon, r_inventory), (b_steammon, b_inventory))
+    | Blue ->
+      set_game_data st
+      ((r_steammon, r_inventory), (apply b_steammon, b_inventory)))
+  else failwith "You ran out of that item"
 
-(* Indicates if there is a winner and the game is over, otherwise returns None *)
-let game_result (st: state) = 
-  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
-  let all_fainted (steammon: steammon list) =
-    List.fold_left (fun acc s ->
-      if s.curr_hp <> 0 then false
-      else acc) true steammon in
-  if all_fainted r_steammon then Winner(Blue)
-  else if all_fainted b_steammon then Winner(Red)
-  else None
