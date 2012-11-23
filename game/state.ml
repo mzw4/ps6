@@ -25,8 +25,8 @@ let set_phase (st: state) (ph: phase) : unit =
   st.phase <- ph;
 
 let set_game_data (st: state) (data: game_status_data) : unit =
-  st.game_data <- data;
-
+  st.game_data <- data;	
+	
 (* Adds a steammon to a team's steammon list. *)
 (* Throws an exception if that steammon is not in the draftable list*)
 let add_steammon (st: state) (team: color) (st: steammon) : unit =
@@ -36,7 +36,7 @@ let add_steammon (st: state) (team: color) (st: steammon) : unit =
     | Some available->
       if (List.mem st available) then 
         let (lst, inventory) = t_data in
-        available <- Some (List.fold_left (fun a x -> if (x = st) then a else x::a) [] available)
+        available <- Some (List.fold_left (fun a x -> if (x = st) then a else x::a) [] available) in
         (st::lst, inventory)
       else 
         failwith "Steammon is not able to be selected"      
@@ -124,32 +124,156 @@ let remove_item (st: state) (team: color) (i: item) : unit =
 (* Processes an attack and calculates the effects *)
 let attack (st: state) (team: color) (a: attack) : unit = 
   let (red_data, blue_data) = st.game_data in
-  
+	let defrost_if_frozen = (Random.int 99) < cDEFROST_CHANCE in
+	let wake_up_if_asleep = (Random.int 99) < cWAKE_UP_CHANCE in
+	let attack_self_if_confused = (Random.int 99) < cSELF_ATTACK_CHANCE in
+  let snap_out_if_confused = (Random.int 99) < cSNAP_OUT_OF_CONFUSION in
+
+	let change_status (s: steammon) (stat: status) : steammon = 
+		{species = s.species; 
+		curr_hp = s.curr_hp; 
+		max_hp = s.max_hp; 
+		first_type = s.first_type; 
+		second_type = s.second_type; 
+		first_attack = s.first_attack; 
+		second_attack = s.second_attack, 
+		third_attack = s.third_attack; 
+		fourth_attack = s.fourth_attack; 
+		attack = s.attack; 
+		spl_attack = s.spl_attack; 
+		defense = s.defense; 
+		spl_defense = s.spl_defense; 
+		speed = s.speed; 
+		status = stat; 
+		mods = s.mods}
+		in
   let attacker_helper (t_data: team_data) : team_data = 
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
-    let nth = match a with
-		| starter.first_attack -> 1
-		| starter.second_attack -> 2
-		| starter.third_attack -> 3
-		| starter.fourth_attack -> 4
-		| _ -> failwith "Steammon does not have that attack"
+		let f (a: attack) : attack = 
+			if (a.pp_remaining <= 0) then failwith "No PP left for that attack" 
+			else {name = a.name ; element = a.element ; max_pp = a.max_pp; pp_remaining = (a.pp_remaining - 1); 
+			power = a.power; accuracy = a.accuracy; crit_chance = a.crit_chance; effect = a.effect} in		
+    let use_attack (s: steammon) : steammon = 
+			match a.name with
+  		| s.first_attack.name -> 
+				{species = s.species; 
+				curr_hp = s.curr_hp; 
+				max_hp = s.max_hp; 
+				first_type = f(s.first_type); 
+				second_type = s.second_type; 
+				first_attack = s.first_attack; 
+				second_attack = s.second_attack, 
+				third_attack = s.third_attack; 
+  			fourth_attack = s.fourth_attack; 
+				attack = s.attack; 
+				spl_attack = s.spl_attack; 
+  			defense = s.defense; 
+				spl_defense = s.spl_defense; 
+				speed = s.speed; 
+  			status = s.status; 
+				mods = s.mods}
+  		| s.second_attack.name ->  
+				{species = s.species; 
+				curr_hp = s.curr_hp; 
+				max_hp = s.max_hp; 
+				first_type = s.first_type; 
+				second_type = f(s.second_type); 
+				first_attack = s.first_attack; 
+				second_attack = s.second_attack, 
+				third_attack = s.third_attack; 
+  			fourth_attack = s.fourth_attack; 
+				attack = s.attack; 
+				spl_attack = s.spl_attack; 
+  			defense = s.defense; 
+				spl_defense = s.spl_defense; 
+				speed = s.speed; 
+  			status = s.status; 
+				mods = s.mods}
+  		| s.third_attack.name ->
+				{species = s.species; 
+				curr_hp = s.curr_hp; 
+				max_hp = s.max_hp; 
+				first_type = s.first_type; 
+				second_type = s.second_type; 
+				first_attack = s.first_attack; 
+				second_attack = s.second_attack, 
+				third_attack = f(s.third_attack); 
+  			fourth_attack = s.fourth_attack; 
+				attack = s.attack; 
+				spl_attack = s.spl_attack; 
+  			defense = s.defense; 
+				spl_defense = s.spl_defense; 
+				speed = s.speed; 
+  			status = s.status; 
+				mods = s.mods}
+  		| s.fourth_attack.name -> 
+				{species = s.species; 
+				curr_hp = s.curr_hp; 
+				max_hp = s.max_hp; 
+				first_type = s.first_type; 
+				second_type = s.second_type; 
+				first_attack = s.first_attack; 
+				second_attack = s.second_attack, 
+				third_attack = s.third_attack; 
+  			fourth_attack = f(s.fourth_attack); 
+				attack = s.attack; 
+				spl_attack = s.spl_attack; 
+  			defense = s.defense; 
+				spl_defense = s.spl_defense; 
+				speed = s.speed; 
+  			status = s.status; 
+				mods = s.mods}
+  		| _ -> failwith "Steammon does not have that attack"
 		in
-		else
+		let confused (s: steammon) : steammon = 
 			
+		let updated_starter =
+			if (List.mem Confused starter.status) then 
+				begin
+				if (List.mem Frozen starter.status) then
+					if (defrost_if_frozen) then
+						change_status starter confused
+				end		
+			else begin
+				if (List.mem Frozen starter.status) then
+					
+				end
+		in
+		((updated_starter)::(List.tl lst), inventory)		
   in
-	let calcualte_attack (t_data: team_data) = 
-		let (lstm inventory) = t_data in
+	(* does not account for mods yet *)
+	let attack_power (t_data: team_data) : float = 
+		let (lst, inventory) = t_data in
 		let starter = List.hd lst in
-	
-  let defender_helper (t_data: team_data) (i: int): team_data = 
-    let (
+		let crit = if (Random.int 99 < a.crit_chance) then cCRIT_MULTIPLIER else 1 in
+		let stab = 
+			match starter.first_type with
+			|	Some t1 ->
+					match starter.second_type with
+					|	Some t2 -> if (a.steamtype = t1 || a.steamtype = t2) then cSTAB_BONUS else 1
+					| None -> if (a.stamtype = t1) then cSTAB_BONUS else 1
+			| None -> 1 	
+			in
+		let type_multpipler = 
+			match starter.first_type with
+			|	Some t1 ->
+					match starter.second_type with
+					|	Some t2 -> (weakness a.steamtype t1) *. (weakness a.steamtype t2)
+					| None -> weakness a.steamtype t1
+			| None -> 1 	
+			in
+		float_of_int (a.power * starter.attack * crit * stab) *. type_multiplier
+	in
+  let defender_helper (t_data: team_data) (f: float): team_data = 
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
-  
+  	
   in
   match team with
-  | Red -> set_game_data st ((attacker_helper red_data), (defender_helper blue_data))
-  | Blue -> set_game_data st ((defender_helper red_data), (attacker_helper blue_data))
+  | Red -> set_game_data st 
+	((attacker_helper red_data), (defender_helper blue_data (attack_power red_data)))
+  | Blue -> set_game_data st 
+	((defender_helper red_data (attack_power blue_data)), (attacker_helper blue_data))
   
   
