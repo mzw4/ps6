@@ -11,11 +11,13 @@ type phase =
 
 type game = State.state
 
-let game = State.create ()
 let attack_tbl = Hashtbl.create 300
 let steammon_tbl = Hashtbl.create 300
 let attack_of_string str = Hashtbl.find attack_tbl str
 let steammon_of_string str = Hashtbl.find steammon_tbl str
+let attack_lst = Hashtbl.fold (fun k v acc -> v::acc) attack_tbl []
+
+let game = State.create steammon_tbl
 
 let game_datafication (g:game) : game_status_data =
   match g with {game_data = data} -> data  
@@ -24,25 +26,38 @@ let game_from_data (game_data:game_status_data) : game  =
   game.game_data <- game_data
 
 let handle_step (g:game) (ra:command) (ba:command) : game_output =
-  let (phase, state) = g in
-  let helper (team: color) (c:command) (s:state) : state =
+  let helper (team: color) (c:command) (s:state) : request =
     match c with
     | Action act -> match act with
       | PickSteammon str -> 
-        State.add_steammon game team (Hashtbl.find steammon_tbl str)
+        State.add_steammon s team (Hashtbl.find steammon_tbl str);
+        if State.team_full s team then
+          PickRequest(team, s.game_data, attack_lst attack_tbl, s.undrafted_steammon)
+        else
+          PickInventoryRequest(s.game_data)
       | PickInventory inventory ->
-        State.set_inventory game team inventory
+        State.set_inventory s team inventory;
+        StarterRequest(s.game_data)
       | SelectStarter str ->
-        State.switch_steammon game team (Hashtbl.find steammon_tbl str)
+        State.switch_steammon s team (Hashtbl.find steammon_tbl str);
+        ActionRequest(s.game_data)
       | SwitchSteammon str ->
-        State.switch_steammon game team (Hashtbl.find steammon_tbl str)
+        State.switch_steammon s team (Hashtbl.find steammon_tbl str);
+        ActionRequest(s.game_data)
       | UseItem (item, str) ->
-        State.use_item item (Hashtbl.find steammon_tbl str)
+        State.use_item item (Hashtbl.find steammon_tbl str);
+        ActionRequest(s.game_data)
       | UseAttack str ->
-        State.attack game team (Hashtbl.find attack_tbl)
-    | _ -> s (* ignores command and returns current state *)
-  in
-  failwith ""
+        State.attack s team (Hashtbl.find attack_tbl);
+        if State.active_fainted s team then 
+          StarterRequest(s.game_data)
+        else
+          ActionRequest(s.game_data)
+    | _ -> None (* ignores command and returns current state *) in
+  let redRequest = helper Red ra g in
+  let blueRequest = helper Blue ba g in
+  let result = State.game_result g in
+  (result, g, redReqest, blueRequest)
 
 let init_game () =
   let alines = read_lines "./game/attack.txt" in
