@@ -5,12 +5,21 @@ open Netgraphics
 
 type state = {mutable game_data: game_status_data}
 
-let create : state = 
+let create () : state = 
   {game_data = (([], [0;0;0;0;0;0;0;0]), ([], [0;0;0;0;0;0;0;0]))}
 
-let set_game_data (st: state) (data: game_status_data) : unit =
-  st.game_data <- data
+let set_game_data (st: state) (game_data: game_status_data) : unit =
+  st.game_data <- game_data
 	
+
+let print_steammon st =
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let rmons = List.fold_left (fun acc x -> acc ^ " " ^(x.species)) "" r_steammon in
+  let bmons = List.fold_left (fun acc x -> acc ^" "^ (x.species)) "" b_steammon in
+  print_endline ("Red: " ^ rmons);
+  print_endline ("Blue: " ^ bmons)
+
+
 (* Indicates if the steammon has already been drafted *)
 let already_selected (st: state) (steammon: steammon) : bool = 
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
@@ -26,6 +35,30 @@ let team_full (st: state) (team: color) : bool  =
   if r_num > cNUM_PICKS || b_num > cNUM_PICKS then failwith "drafted too many pkmns wtf"
   else (team = Red && r_num = cNUM_PICKS) || (team = Blue && b_num = cNUM_PICKS)
 
+(* Indicates if the specified steammon is currently active *)
+let is_active (st: state) (team: color) (steammon: steammon) : bool =
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  match team with 
+  | Red -> (List.hd r_steammon).species = steammon.species
+  | Blue -> (List.hd b_steammon).species = steammon.species
+
+(* Indicates which team's active steammon is faster *)
+let faster_team (st: state) : color = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let r_speed = (List.hd r_steammon).speed in
+  let b_speed = (List.hd b_steammon).speed
+  if r_speed > b_speed then Red
+  else if b_speed > r_speed then Blue
+  else if Random.float 1. > 0.5 then Red
+  else Blue
+
+(* Indicates if the active steammon of a team has fainted *)
+let active_fainted (st: state) (team: color) : bool = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in    
+  match team with
+  | Red -> (List.hd r_steammon).curr_hp <= 0
+  | Blue -> (List.hd b_steammon).curr_hp <= 0
+  
 (* Indicates if the inventory contains the specified item *)
 let inventory_contains (st: state) (team: color) (item: item) : bool = 
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
@@ -46,20 +79,6 @@ let inventory_contains (st: state) (team: color) (item: item) : bool =
   | Red -> contains r_inventory item
   | Blue -> contains b_inventory item
 
-(* Indicates if the specified steammon is currently active *)
-let is_active (st: state) (team: color) (steammon: steammon) : bool =
-  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
-  match team with 
-  | Red -> (List.hd r_steammon).species = steammon.species
-  | Blue -> (List.hd b_steammon).species = steammon.species
-
-(* Indicates if the active steammon of a team has fainted *)
-let active_fainted (st: state) (team: color) : bool = 
-  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in    
-  match team with
-  | Red -> (List.hd r_steammon).curr_hp <= 0
-  | Blue -> (List.hd b_steammon).curr_hp <= 0
-  
 (* Indicates if there is a winner and the game is over, otherwise returns None *)
 let game_result (st: state) : game_result option = 
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
@@ -330,7 +349,6 @@ let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack 
   (* 	((attacker_helper red_data), (defender_helper blue_data (attack_power red_data))) *)
   (* | Blue -> set_game_data st  *)
   (* 	((defender_helper red_data (attack_power blue_data)), (attacker_helper blue_data)) *)
-
 
 (* Applies an item effect on a target steammon *)
 let use_item (st: state) (team: color) (item: item) (target: steammon) : unit = 

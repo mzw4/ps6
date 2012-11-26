@@ -1,10 +1,9 @@
 open Definitions
 
-type phase
-
 type state
+type idk
 
-val create: state 
+val create: unit -> state 
 
 val set_game_data: state -> game_status_data -> unit
 
