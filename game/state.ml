@@ -268,7 +268,27 @@ let attack (st: state) (team: color) (a: attack) : unit =
   let defender_helper (t_data: team_data) (f: float): team_data = 
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
-  	
+		let new_hp = if (starter.current_hp < ((int_of_float) f) then 0 
+			else (starter.current_hp - ((int_of_float) f)) in
+		let updated_steammon = 
+			{species = s.species; 
+				curr_hp = new_hp; 
+				max_hp = s.max_hp; 
+				first_type = s.first_type; 
+				second_type = s.second_type; 
+				first_attack = s.first_attack; 
+				second_attack = s.second_attack, 
+				third_attack = s.third_attack; 
+  			fourth_attack = s.fourth_attack; 
+				attack = s.attack; 
+				spl_attack = s.spl_attack; 
+  			defense = s.defense; 
+				spl_defense = s.spl_defense; 
+				speed = s.speed; 
+  			status = s.status; 
+				mods = s.mods}
+  	in
+		((updated_steammon)::(List.tl lst), inventory)
   in
   match team with
   | Red -> set_game_data st 
