@@ -216,7 +216,7 @@ let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack 
 		| _ -> false
 		in
 	(* updates status *)
-  let change_status (s: steammon) (stat: status) : steammon = 
+  let change_status (s: steammon) (stat: status list) : steammon = 
     {species = s.species; 
     curr_hp = s.curr_hp; 
     max_hp = s.max_hp; 
@@ -234,6 +234,27 @@ let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack 
     status = stat; 
     mods = s.mods}
     in
+	(* processes hp changes *)	
+	let update_hp (s: steammon) (f : float) : steammon =
+		 let new_hp = if (starter.current_hp < (inf_of_float f) then 0 
+      else (starter.current_hp - (int_of_float f)) in
+    let updated_steammon = 
+      {species = starter.species; 
+      curr_hp = new_hp; 
+      max_hp = starter.max_hp; 
+      first_type = starter.first_type; 
+      second_type = starter.second_type; 
+      first_attack = starter.first_attack; 
+      second_attack = starter.second_attack, 
+      third_attack = starter.third_attack; 
+      fourth_attack = starter.fourth_attack; 
+      attack = starter.attack; 
+      spl_attack = starter.spl_attack; 
+      defense = starter.defense; 
+      spl_defense = starter.spl_defense; 
+      speed = starter.speed; 
+      status = starter.status; 
+      mods = starter.mods}
 	(* processes changes in attacker's state *)	
   let attacker_helper (t_data: team_data) : team_data = 
     let (lst, inventory) = t_data in
@@ -317,21 +338,52 @@ let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack 
       | _ -> failwith "Steammon does not have that attack"
     	in
     let process_confused (s: steammon) : steammon = 
-      if snap_out_if_confused then
-			else if attack_self_if_confused then 
+      if snap_out_of_confused then
+				use_pp (change_status s [])				
+			else if attack_self_if_confused then
+				process_hp s (cSELF_ATTACK_POWER *. s.attack /. s.defense)
+			else use_pp s	 
     let updated_starter =
       if (List.mem Confused starter.status) then 
         begin
         if (List.mem Frozen starter.status) then 
           if (defrost_if_frozen) then
-            use_pp (change_status starter confused)
+            process_confused (change_status starter [confused])
 					else 
 						starter
-				else if (List.mem 
+				else if (List.mem Paralyzed starter.status) then
+					if (stuck_if_paralyzed) then
+						starter
+					else 
+						process_confused starter
+				else if (List.mem Asleep starter.status) then
+					if (wake_up_if_paralyzed) then
+						process_confused (change_status starter [confused])
+					else
+						starter
+				else if (List.mem Poisoned starter.status) then
+					process_confused (process_hp starter (cPOISON_DAMAGE *. starter.attack /. starter.defense))	
+				else process_confused starter
         end    
       else begin
-        if (List.mem Frozen starter.status) then
-          
+        if (List.mem Frozen starter.status) then 
+          if (defrost_if_frozen) then
+            use_pp (change_status starter [confused])
+					else 
+						starter
+				else if (List.mem Paralyzed starter.status) then
+					if (stuck_if_paralyzed) then
+						starter
+					else 
+						use_pp starter
+				else if (List.mem Asleep starter.status) then
+					if (wake_up_if_paralyzed) then
+						use_pp (change_status starter [confused])
+					else
+						starter
+				else if (List.mem Poisoned starter.status) then
+					use_pp (process_hp starter (cPOISON_DAMAGE *. starter.attack /. starter.defense))		
+				else use_pp starter
         end
     	in
     ((updated_starter)::(List.tl lst), inventory)    
@@ -380,26 +432,7 @@ let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack 
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
 		let defense = if (is_special) then starter.spl_defense else starter.defense in
-    let new_hp = if (starter.current_hp < ((int_of_float) (f /. defense)) then 0 
-      else (starter.current_hp - ((int_of_float) f)) in
-    let updated_steammon = 
-      {species = starter.species; 
-      curr_hp = new_hp; 
-      max_hp = starter.max_hp; 
-      first_type = starter.first_type; 
-      second_type = starter.second_type; 
-      first_attack = starter.first_attack; 
-      second_attack = starter.second_attack, 
-      third_attack = starter.third_attack; 
-      fourth_attack = starter.fourth_attack; 
-      attack = starter.attack; 
-      spl_attack = starter.spl_attack; 
-      defense = starter.defense; 
-      spl_defense = starter.spl_defense; 
-      speed = starter.speed; 
-      status = starter.status; 
-      mods = starter.mods}
-    in
+    let updated_steammon = process_hp starter (f /. defense) in
     (updated_steammon::(List.tl lst), inventory)
   in
   match team with
