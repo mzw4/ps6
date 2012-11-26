@@ -17,13 +17,12 @@ let attack_of_string str = Hashtbl.find attack_tbl str
 let steammon_of_string str = Hashtbl.find steammon_tbl str
 let attack_lst = Hashtbl.fold (fun k v acc -> v::acc) attack_tbl []
 
-let game = State.create steammon_tbl
-
 let game_datafication (g:game) : game_status_data =
-  match g with {game_data = data} -> data  
+  match g with {State.game_data = data} -> data  
   
 let game_from_data (game_data:game_status_data) : game  = 
-  game.game_data <- game_data
+  let g = State.create in
+  g.State.game_data <- game_data
 
 let handle_step (g:game) (ra:command) (ba:command) : game_output =
   let helper (team: color) (c:command) (s:state) : request =
@@ -71,12 +70,11 @@ let init_game () =
           pp_remaining = int_of_string pp;
           power = int_of_string pow; accuracy = int_of_string acc;
           crit_chance = int_of_string crit;
-          effect = (effect_of_num eff) * eff_chance}
+          effect = (effect_of_num eff) * eff_chance} in
         Hashtbl.add attack_tbl n attack;
         attack :: acc
       | _ -> failwith "incorrect attack input format"
     ) [] alines in
-
   let slines = read_lines "./game/attack.txt" in
   (* construct a steammon list *)
   let steammon = 
@@ -97,7 +95,7 @@ let init_game () =
         smon :: acc
       | _ -> failwith "incorrect attack input format"
     ) [] slines in
-
   let first_pick = 
     if (Random.float 1) > 0.5 then Red else Blue in
-  (game, first_pick, attacks, steammon)
+  let new_game = State.create steammon_tbl in
+  (new_game, first_pick, attacks, steammon)

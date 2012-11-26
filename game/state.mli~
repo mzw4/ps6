@@ -1,5 +1,7 @@
 open Definitions
 
+type phase
+
 type state
 
 val create: state 
