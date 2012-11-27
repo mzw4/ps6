@@ -19,13 +19,22 @@ let print_steammon st =
   print_endline ("Red: " ^ rmons);
   print_endline ("Blue: " ^ bmons)
 
+let print_inventory st = 
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let print inventory =
+    List.fold_left (fun acc x -> acc ^ " " ^ (string_of_int x)) "" inventory in
+  print_endline ("Red inventory:" ^ (print r_inventory));
+  print_endline ("Blue inventory:" ^ (print b_inventory))
+
 
 (* Indicates if the steammon has already been drafted *)
 let already_selected (st: state) (steammon: steammon) : bool = 
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
-  List.fold_left2 (fun acc r b ->
-    if r.species = steammon.species || b.species = steammon.species then true
-    else acc) false r_steammon b_steammon
+  let selected lst = 
+    List.fold_left (fun acc s ->
+    if s.species = steammon.species then true
+    else acc) false lst in
+  selected r_steammon ||  selected b_steammon
 
 (* Indicates if a team is full and finished with the draft step *)
 let team_full (st: state) (team: color) : bool  = 
@@ -45,12 +54,16 @@ let is_active (st: state) (team: color) (steammon: steammon) : bool =
 (* Indicates which team's active steammon is faster *)
 let faster_team (st: state) : color = 
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
-  let r_speed = (List.hd r_steammon).speed in
-  let b_speed = (List.hd b_steammon).speed
-  if r_speed > b_speed then Red
-  else if b_speed > r_speed then Blue
-  else if Random.float 1. > 0.5 then Red
-  else Blue
+  if List.length r_steammon = 0 || List.length b_steammon = 0 then begin
+    if Random.float 1. > 0.5 then Red
+    else Blue end
+  else begin
+    let r_speed = (List.hd r_steammon).speed in
+    let b_speed = (List.hd b_steammon).speed in
+    if r_speed > b_speed then Red
+    else if b_speed > r_speed then Blue
+    else if Random.float 1. > 0.5 then Red
+    else Blue end
 
 (* Indicates if the active steammon of a team has fainted *)
 let active_fainted (st: state) (team: color) : bool = 
@@ -83,9 +96,11 @@ let inventory_contains (st: state) (team: color) (item: item) : bool =
 let game_result (st: state) : game_result option = 
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
   let all_fainted (steammon: steammon list) =
-    List.fold_left (fun acc s ->
-      if s.curr_hp <> 0 then false
-      else acc) true steammon in
+    if List.length steammon > 0 then
+      List.fold_left (fun acc s ->
+        if s.curr_hp <> 0 then false
+        else acc) true steammon
+    else false in
   if all_fainted r_steammon then Some(Winner(Blue))
   else if all_fainted b_steammon then Some(Winner(Red))
   else None
@@ -118,6 +133,26 @@ let switch_steammon (st: state) (team: color) (steammon: steammon) : unit =
   match team with 
   | Red -> set_game_data st ((helper red_data), blue_data)
   | Blue -> set_game_data st (red_data, (helper blue_data))
+
+(* Gets the max hp of a steammon *)
+let get_max_hp (st: state) (team: color) (species: string) : int =
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let hp mons = List.fold_left (fun acc x -> 
+      if x.species = species then x.max_hp
+      else acc) 0 mons in
+  match team with 
+  | Red -> hp r_steammon
+  | Blue -> hp b_steammon
+
+(* Gets the current hp of a steammon *)
+let get_curr_hp (st: state) (team: color) (species: string) : int =
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  let chp mons = List.fold_left (fun acc x -> 
+     if x.species = species then x.curr_hp
+     else acc) 0 mons in
+  match team with 
+  | Red -> chp r_steammon
+  | Blue -> chp b_steammon
 
 (* Sets a player's inventory to the specified one *)
 let set_inventory (st: state) (team: color) (inventory: int list) : unit = 
