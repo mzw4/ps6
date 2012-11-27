@@ -234,9 +234,36 @@ let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack 
     status = stat; 
     mods = s.mods}
     in
-	(* processes hp changes *)	
-	let update_hp (s: steammon) (f : float) : steammon =
-		 let new_hp = if (starter.current_hp < (inf_of_float f) then 0 
+  let add_status (s: steammon) (stat: status) : steammon = 
+    let new_status = 
+      if ((stat = Confused) && not(List.mem s.status Confused)) then Confused::s.status
+      else if ((List.mem s.status Poisoned) || (List.mem s.status Asleep) || 
+      (List.mem s.status Paralyzed) || (List.mem s.status Frozen))
+      then s
+      else new_status = stat::s.status
+      in
+     change_status s new_status
+    in
+  let change_mod (s: steammon) (e:effect) : steammon = 
+    let f_up (i: int) : int = 
+      if (i = 3) then 3
+        else i + 1
+      in
+    let f_down (i:int) : int = 
+      if (i = -3) then -3
+        else i - 1
+    match e with
+    | SelfAttackUp1
+    | SelfDefenseUp1
+    | SelfSpeedUp1
+    | SelfAccuracyUp1
+    | OpponentAttackDown1
+    | OpponentDefenseDown1
+    | OpponentSpeedDown1
+    | OpponentAccuracyDown1	
+  (* processes hp changes *)	
+  let update_hp (s: steammon) (f : float) : steammon =
+    let new_hp = if (starter.current_hp < (inf_of_float f) then 0 
       else (starter.current_hp - (int_of_float f)) in
     let updated_steammon = 
       {species = starter.species; 
@@ -432,6 +459,25 @@ let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack 
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
 		let defense = if (is_special) then starter.spl_defense else starter.defense in
+    let process_status (s:steammon) = 
+      let (status, prob) = a.effect in
+      if (Random.int 99) > prob then s
+      else match status with
+      	| Nada -> s
+        | Poisons -> add_status s Poisoned
+        | Confuses -> add_status s Confused
+        | Sleeps -> add_status s Asleep
+        | Paralyzes -> add_status s Paralyzed
+        | Freezes -> add_status s Frozen
+        | SelfAttackUp1 ->
+        | SelfDefenseUp1
+        | SelfSpeedUp1
+        | SelfAccuracyUp1
+        | OpponentAttackDown1
+        | OpponentDefenseDown1
+        | OpponentSpeedDown1
+        | OpponentAccuracyDown1
+      in    
     let updated_steammon = process_hp starter (f /. defense) in
     (updated_steammon::(List.tl lst), inventory)
   in
