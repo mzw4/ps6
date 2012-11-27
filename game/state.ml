@@ -120,13 +120,30 @@ let add_steammon (st: state) (team: color) (steammon: steammon) : unit =
 
 (* Switches a steammon so it appears at the head of a the steammon list. *)
 (* Throws an exception if that steammon is not in the list. *)
-let switch_steammon (st: state) (team: color) (steammon: steammon) : unit =
+let switch_steammon (st: state) (team: color) (s: steammon) : unit =
   let (red_data, blue_data) = st.game_data in
   let helper (t_data: team_data) : team_data =
     let (lst, inventory) = t_data in
-    if (List.mem steammon lst) then
-      let tl = List.fold_left (fun a x -> if (x = steammon) then a else x::a) [] lst in
-      (steammon::tl, inventory)
+    if (List.mem s lst) then
+      let tl = List.fold_left (fun a x -> if (x = s) then a else x::a) [] lst in 
+			let starter = 
+				{species = s.species; 
+        curr_hp = s.curr_hp; 
+        max_hp = s.max_hp; 
+        first_type = s.first_type; 
+        second_type = s.second_type; 
+        first_attack = s.first_attack; 
+        second_attack = s.second_attack, 
+        third_attack = s.third_attack; 
+        fourth_attack = f(s.fourth_attack); 
+        attack = s.attack; 
+        spl_attack = s.spl_attack; 
+        defense = s.defense; 
+        spl_defense = s.spl_defense; 
+        speed = s.speed; 
+        status = (List.filter (fun x -> x != Confused) s.status); 
+        mods = s.mods}
+      (starter::tl, inventory)
     else
       failwith "Steammon selected is not in the team."
   in  
