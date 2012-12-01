@@ -125,30 +125,28 @@ let switch_steammon (st: state) (team: color) (s: steammon) : unit =
   let helper (t_data: team_data) : team_data =
     let (lst, inventory) = t_data in
     if (List.mem s lst) then
-      let tl = List.fold_left (fun a x -> if (x = s) then a else x::a) [] lst in 
-			let starter = 
-				{species = s.species; 
+      let tl = List.filter (fun x -> x.species <> s.species) lst in 
+      let starter = 
+	{species = s.species; 
         curr_hp = s.curr_hp; 
         max_hp = s.max_hp; 
         first_type = s.first_type; 
         second_type = s.second_type; 
         first_attack = s.first_attack; 
-        second_attack = s.second_attack, 
+        second_attack = s.second_attack; 
         third_attack = s.third_attack; 
-        fourth_attack = f(s.fourth_attack); 
+        fourth_attack = s.fourth_attack; 
         attack = s.attack; 
         spl_attack = s.spl_attack; 
         defense = s.defense; 
         spl_defense = s.spl_defense; 
         speed = s.speed; 
-        status = (List.filter (fun x -> x != Confused) s.status); 
+        status = (List.filter (fun x -> x <> Confused) s.status); 
         mods = {
-					attack_mod = 0;
-					speed_mod = 0;
-					defense_mod = 0;
-					accuracy_mod = 0;
-					} 
-				}in
+	attack_mod = 0;
+	speed_mod = 0;
+	defense_mod = 0;
+	accuracy_mod = 0;}} in
       (starter::tl, inventory)
     else
       failwith "Steammon selected is not in the team."
@@ -256,33 +254,30 @@ let remove_item (st: state) (team: color) (i: item) : unit =
 (* Processes an attack and calculates the changes in states *)
 let attack (st: state) (team: color) (a: attack) : unit = 
   let (red_data, blue_data) = st.game_data in
-  
-	(* booleans for handling statuses *)
+  (* booleans for handling statuses *)
   let stuck_if_paralyzed = (Random.int 99) < cPARALYSIS_CHANCE in
   let defrost_if_frozen = (Random.int 99) < cDEFROST_CHANCE in
   let wake_up_if_asleep = (Random.int 99) < cWAKE_UP_CHANCE in
   let attack_self_if_confused = (Random.int 99) < cSELF_ATTACK_CHANCE in
-  let snap_out_if_confused = (Random.int 99) < cSNAP_OUT_OF_CONFUSION in
-  
+  let snap_out_of_confused = (Random.int 99) < cSNAP_OUT_OF_CONFUSION in
   (* boolean for if an attack is a regular attack or special attack *)
   let is_special = 
-    match a.steamtpye with
+    match a.element with
     | Electric
     | Fire 
     | Water
     | Psychic
     | Ghost -> true
-    | _ -> false
-    in
-  (* updates status *)
-  let change_status (s: steammon) (stat: status list) : steammon = 
+    | _ -> false in
+  (* sets status *)
+  let set_status (s: steammon) (status: status list) : steammon = 
     {species = s.species; 
     curr_hp = s.curr_hp; 
     max_hp = s.max_hp; 
     first_type = s.first_type; 
     second_type = s.second_type; 
     first_attack = s.first_attack; 
-    second_attack = s.second_attack, 
+    second_attack = s.second_attack;
     third_attack = s.third_attack; 
     fourth_attack = s.fourth_attack; 
     attack = s.attack; 
@@ -290,66 +285,60 @@ let attack (st: state) (team: color) (a: attack) : unit =
     defense = s.defense; 
     spl_defense = s.spl_defense; 
     speed = s.speed; 
-    status = stat; 
-    mods = s.mods}
-    in
+    status = status; 
+    mods = s.mods} in
   let add_status (s: steammon) (stat: status) : steammon = 
     let new_status = 
-      if ((stat = Confused) && not(List.mem s.status Confused)) then Confused::s.status
-      else if ((List.mem s.status Poisoned) || (List.mem s.status Asleep) || 
-      (List.mem s.status Paralyzed) || (List.mem s.status Frozen))
-      then s
-      else new_status = stat::s.status
-      in
-     change_status s new_status
-    in
-	(* updates mods *)	
-  let change_mod (s: steammon) (e:effect) : steammon = 
+      if (stat = Confused && (List.mem Confused s.status)) ||
+         (stat <> Confused && (
+         (List.mem Poisoned s.status) || (List.mem Asleep s.status) || 
+         (List.mem Paralyzed s.status) || (List.mem Frozen s.status))) then s.status
+      else stat::s.status in
+     set_status s new_status in
+  (* updates mods *)	
+  let change_mod (s: steammon) (e:effects) : steammon = 
     let f_up (i: int) : int = 
       if (i = 3) then 3
-        else i + 1
-      in
+        else i + 1 in
     let f_down (i:int) : int = 
       if (i = -3) then -3
-        else i - 1 
-			in
+        else i - 1 in
     let new_mods = 
-			match e with
+      match e with
       | SelfAttackUp1 -> 
-				{attack_mod = (f_up s.mods.attack_mod); speed_mod = s.mods.speed_mod; 
-				defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
+	{attack_mod = (f_up s.mods.attack_mod); speed_mod = s.mods.speed_mod; 
+	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
       | SelfDefenseUp1 -> 				
-				{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-				defense_mod = (f_up s.mods.defense_mod); accuracy_mod = s.mods.accuracy_mod}
+	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+	defense_mod = (f_up s.mods.defense_mod); accuracy_mod = s.mods.accuracy_mod}
       | SelfSpeedUp1 ->
-				{attack_mod = s.mods.attack_mod; speed_mod = (f_up s.mods.speed_mod); 
-				defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
+	{attack_mod = s.mods.attack_mod; speed_mod = (f_up s.mods.speed_mod); 
+	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
       | SelfAccuracyUp1 ->
-				{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-				defense_mod = s.mods.defense_mod; accuracy_mod = (f_up s.mods.accuracy_mod)} 
+	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+	defense_mod = s.mods.defense_mod; accuracy_mod = (f_up s.mods.accuracy_mod)} 
       | OpponentAttackDown1 ->
-				{attack_mod = (f_down s.mods.attack_mod); speed_mod = s.mods.speed_mod; 
-				defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
+	{attack_mod = (f_down s.mods.attack_mod); speed_mod = s.mods.speed_mod; 
+	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
       | OpponentDefenseDown1 ->
-				{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-				defense_mod = (f_down s.mods.defense_mod); accuracy_mod = s.mods.accuracy_mod}
+	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+	defense_mod = (f_down s.mods.defense_mod); accuracy_mod = s.mods.accuracy_mod}
       | OpponentSpeedDown1 ->
-				{attack_mod = s.mods.attack_mod; speed_mod = (f_down s.mods.speed_mod); 
-				defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}			
+	{attack_mod = s.mods.attack_mod; speed_mod = (f_down s.mods.speed_mod); 
+	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}	   
       | OpponentAccuracyDown1  ->
-				{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-				defense_mod = s.mods.defense_mod; accuracy_mod = (f_down s.mods.accuracy_mod)}
-			| _ ->
-				{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-				defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
-			in
-	  {species = s.species; 
+	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+	defense_mod = s.mods.defense_mod; accuracy_mod = (f_down s.mods.accuracy_mod)}
+      | _ ->
+	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod} in
+    {species = s.species; 
     curr_hp = s.curr_hp; 
     max_hp = s.max_hp; 
     first_type = s.first_type; 
     second_type = s.second_type; 
     first_attack = s.first_attack; 
-    second_attack = s.second_attack, 
+    second_attack = s.second_attack;
     third_attack = s.third_attack; 
     fourth_attack = s.fourth_attack; 
     attack = s.attack; 
@@ -358,67 +347,63 @@ let attack (st: state) (team: color) (a: attack) : unit =
     spl_defense = s.spl_defense; 
     speed = s.speed; 
     status = s.status; 
-    mods = new_mods}
-		in
-	let mod_attack (s:steammon) : float = 
-		match s.mods.attack_mod with
-		| -3 -> cATTACK_DOWN3
-		| -2 -> cATTACK_DOWN2
-		| -1 -> cATTACK_DOWN1
-		| 1 -> cATTACK_UP1
-		| 2 -> cATTACK_UP2
-		| 3 -> cATTACK_UP3
-		| _	-> 1
-		in
-	let mod_defense (s:steammon) : float = 
-		match s.mods.defense_mod with
-		| -3 -> cDEFENSE_DOWN3
-		| -2 -> cDEFENSE_DOWN2
-		| -1 -> cDEFENSE_DOWN1
-		| 1 -> cDEFENSE_UP1
-		| 2 -> cDEFENSE_UP2
-		| 3 -> cDEFENSE_UP3
-		| _	-> 1
-		in			
+    mods = new_mods} in
+  let mod_attack (s:steammon) : float =
+    match s.mods.attack_mod with
+    | -3 -> cATTACK_DOWN3
+    | -2 -> cATTACK_DOWN2
+    | -1 -> cATTACK_DOWN1
+    | 1 -> cATTACK_UP1
+    | 2 -> cATTACK_UP2
+    | 3 -> cATTACK_UP3
+    | _ -> 1. in
+  let mod_defense (s:steammon) : float = 
+    match s.mods.defense_mod with
+    | -3 -> cDEFENSE_DOWN3
+    | -2 -> cDEFENSE_DOWN2
+    | -1 -> cDEFENSE_DOWN1
+    | 1 -> cDEFENSE_UP1
+    | 2 -> cDEFENSE_UP2
+    | 3 -> cDEFENSE_UP3
+    | _ -> 1. in			
   (* processes hp changes *)  
   let update_hp (s: steammon) (f : float) : steammon =
-    let new_hp = if (starter.current_hp < (inf_of_float f)) then 0 
-      else (starter.current_hp - (int_of_float f)) in
-      {species = starter.species; 
-      curr_hp = new_hp; 
-      max_hp = starter.max_hp; 
-      first_type = starter.first_type; 
-      second_type = starter.second_type; 
-      first_attack = starter.first_attack; 
-      second_attack = starter.second_attack, 
-      third_attack = starter.third_attack; 
-      fourth_attack = starter.fourth_attack; 
-      attack = starter.attack; 
-      spl_attack = starter.spl_attack; 
-      defense = starter.defense; 
-      spl_defense = starter.spl_defense; 
-      speed = starter.speed; 
-      status = starter.status; 
-      mods = starter.mods} in
+    let new_hp = if (s.curr_hp < (int_of_float f)) then 0 
+      else (s.curr_hp - (int_of_float f)) in
+    {species = s.species; 
+    curr_hp = new_hp; 
+    max_hp = s.max_hp; 
+    first_type = s.first_type; 
+    second_type = s.second_type; 
+    first_attack = s.first_attack; 
+    second_attack = s.second_attack;
+    third_attack = s.third_attack; 
+    fourth_attack = s.fourth_attack; 
+    attack = s.attack; 
+    spl_attack = s.spl_attack; 
+    defense = s.defense; 
+    spl_defense = s.spl_defense; 
+    speed = s.speed; 
+    status = s.status; 
+    mods = s.mods} in
   (* processes changes in attacker's state *)  
   let attacker_helper (t_data: team_data) : team_data = 
-    let (lst, inventory) = t_data in
-    let starter = List.hd lst in
-    let f (a: attack) : attack = 
-      if (a.pp_remaining <= 0) then a (* don't do anything *)
-      else {name = a.name ; element = a.element ; max_pp = a.max_pp; 
-      pp_remaining = (a.pp_remaining - 1); power = a.power; accuracy = 
-        a.accuracy; crit_chance = a.crit_chance; effect = a.effect} in
+    let (steammon_lst, inventory) = t_data in
+    let starter = List.hd steammon_lst in
     let use_pp (s: steammon) : steammon = 
-      match a.name with
-      | s.first_attack.name -> 
+      let f (a: attack) : attack = 
+        if (a.pp_remaining <= 0) then a (* don't do anything if pp = 0 *)
+        else {name = a.name ; element = a.element ; max_pp = a.max_pp; 
+          pp_remaining = (a.pp_remaining - 1); power = a.power; accuracy = 
+          a.accuracy; crit_chance = a.crit_chance; effect = a.effect} in
+      if a.name = s.first_attack.name then 
         {species = s.species; 
         curr_hp = s.curr_hp; 
         max_hp = s.max_hp; 
-        first_type = f(s.first_type); 
+        first_type = s.first_type; 
         second_type = s.second_type; 
-        first_attack = s.first_attack; 
-        second_attack = s.second_attack, 
+        first_attack = f (s.first_attack); 
+        second_attack = s.second_attack; 
         third_attack = s.third_attack; 
         fourth_attack = s.fourth_attack; 
         attack = s.attack; 
@@ -428,14 +413,14 @@ let attack (st: state) (team: color) (a: attack) : unit =
         speed = s.speed; 
         status = s.status; 
         mods = s.mods}
-      | s.second_attack.name ->  
+      else if a.name = s.second_attack.name then
         {species = s.species; 
         curr_hp = s.curr_hp; 
         max_hp = s.max_hp; 
         first_type = s.first_type; 
-        second_type = f(s.second_type); 
+        second_type = s.second_type; 
         first_attack = s.first_attack; 
-        second_attack = s.second_attack, 
+        second_attack = f (s.second_attack);
         third_attack = s.third_attack; 
         fourth_attack = s.fourth_attack; 
         attack = s.attack; 
@@ -445,14 +430,14 @@ let attack (st: state) (team: color) (a: attack) : unit =
         speed = s.speed; 
         status = s.status; 
         mods = s.mods}
-      | s.third_attack.name ->
+      else if a.name = s.third_attack.name then
         {species = s.species; 
         curr_hp = s.curr_hp; 
         max_hp = s.max_hp; 
         first_type = s.first_type; 
         second_type = s.second_type; 
         first_attack = s.first_attack; 
-        second_attack = s.second_attack, 
+        second_attack = s.second_attack;
         third_attack = f(s.third_attack); 
         fourth_attack = s.fourth_attack; 
         attack = s.attack; 
@@ -462,14 +447,14 @@ let attack (st: state) (team: color) (a: attack) : unit =
         speed = s.speed; 
         status = s.status; 
         mods = s.mods}
-      | s.fourth_attack.name -> 
+      else if a.name = s.fourth_attack.name then
         {species = s.species; 
         curr_hp = s.curr_hp; 
         max_hp = s.max_hp; 
         first_type = s.first_type; 
         second_type = s.second_type; 
         first_attack = s.first_attack; 
-        second_attack = s.second_attack, 
+        second_attack = s.second_attack;
         third_attack = s.third_attack; 
         fourth_attack = f(s.fourth_attack); 
         attack = s.attack; 
@@ -479,142 +464,141 @@ let attack (st: state) (team: color) (a: attack) : unit =
         speed = s.speed; 
         status = s.status; 
         mods = s.mods}
-      | _ -> failwith "Steammon does not have that attack"
-      in
-		let process_mods (s: steammon) : steammon = 
-			let (status, prob) = a.effect in
-			if (prob > Random.int 99) then
-  			match status with
-  			| SelfAttackUp1 
-        | SelfDefenseUp1 
-        | SelfSpeedUp1
-        | SelfAccuracyUp1  -> change_mod s status
-  			| _ -> s
-			else s
-  			in
+      else failwith "Steammon does not have that attack" in
+    let process_mods (s: steammon) : steammon = 
+      let (status, prob) = a.effect in
+        if (prob > Random.int 99) then
+          match status with
+          | SelfAttackUp1 
+          | SelfDefenseUp1 
+          | SelfSpeedUp1
+          | SelfAccuracyUp1  -> change_mod s status
+          | _ -> s
+	else s in
     let process_confused (s: steammon) : steammon = 
       if snap_out_of_confused then
-        use_pp (change_status s [])        
+        use_pp (set_status s (List.filter (fun x -> x <> Confused) s.status))        
       else if attack_self_if_confused then
-        process_hp s (cSELF_ATTACK_POWER *. s.attack /. s.defense)
-      else use_pp s 
-			in  
+        update_hp s (float_of_int (cSELF_ATTACK_POWER * s.attack / s.defense))
+      else use_pp s in  
     let updated_starter =
-      if (List.mem Confused starter.status) then 
-        begin
-        if (List.mem Frozen starter.status) then 
+      let other_status = List.filter (fun x -> x <> Confused) starter.status in 
+      if (List.mem Confused starter.status) then
+        match other_status with
+	| [Frozen] ->
           if (defrost_if_frozen) then
-            process_confused (change_status starter [confused])
+            process_confused (set_status starter [Confused])
           else 
             starter
-        else if (List.mem Paralyzed starter.status) then
+	| [Paralyzed] ->
           if (stuck_if_paralyzed) then
             starter
           else 
-            process_confused starter
-        else if (List.mem Asleep starter.status) then
-          if (wake_up_if_paralyzed) then
-            process_confused (change_status starter [confused])
+            process_confused (set_status starter [Confused])
+	| [Asleep] -> 
+          if (wake_up_if_asleep) then
+            process_confused (set_status starter [Confused])
           else
             starter
-        else if (List.mem Poisoned starter.status) then
-          process_confused (process_hp starter (cPOISON_DAMAGE *. starter.attack /. starter.defense))  
-        else process_confused starter
-        end    
-      else begin
-        if (List.mem Frozen starter.status) then 
+	| [Poisoned] ->
+          process_confused (update_hp starter (cPOISON_DAMAGE *.
+          (float_of_int starter.attack) /. (float_of_int starter.defense)))
+	| _ -> process_confused starter    
+      else 
+        match other_status with
+	| [Frozen] ->
           if (defrost_if_frozen) then
-            use_pp (change_status starter [confused])
+            use_pp starter
           else 
             starter
-        else if (List.mem Paralyzed starter.status) then
+	| [Paralyzed] ->
           if (stuck_if_paralyzed) then
             starter
           else 
             use_pp starter
-        else if (List.mem Asleep starter.status) then
-          if (wake_up_if_paralyzed) then
-            use_pp (change_status starter [confused])
+	| [Asleep] ->
+          if (wake_up_if_asleep) then
+            use_pp starter
           else
             starter
-        else if (List.mem Poisoned starter.status) then
-          use_pp (process_hp starter (cPOISON_DAMAGE *. starter.attack /. starter.defense))    
-        else use_pp starter
-        end
-      in
-    ((process_mods updated_starter)::(List.tl lst), inventory)    
-  in
+	| [Poisoned] ->
+          use_pp (update_hp starter (cPOISON_DAMAGE *.
+          (float_of_int starter.attack) /. (float_of_int starter.defense)))
+        | _ -> use_pp starter in
+    ((process_mods updated_starter)::(List.tl steammon_lst), inventory) in
   (* processes attack power *)
-  let attack_power (t_data: team_data) : float = 
-      let (lst, inventory) = t_data in
-      let starter = List.hd lst in
-      let attack = if (is_special) then starter.spl_attack else (starter.attack * (mod_attack starter)) in
-      let crit = if (Random.int 99 < a.crit_chance) then cCRIT_MULTIPLIER else 1 in
+  let attack_power (attacker: team_data) (defender: team_data) : float = 
+      let (atk_steammon, _) = attacker in
+      let starter = List.hd atk_steammon in (* active attacking steammon *)
+      let (def_steammon,_) = defender in
+      let def_steammon = (List.hd def_steammon) in (*active defending steammon *)
+      let (def_type1, def_type2) =
+        (def_steammon.first_type, def_steammon.second_type) in
+      let attack = 
+        if (is_special) then float_of_int starter.spl_attack
+        else ((float_of_int starter.attack) *. (mod_attack starter)) in
+      let crit = if (Random.int 99 < a.crit_chance) then cCRIT_MULTIPLIER else 1. in
       let stab = 
-        match starter.first_type with
-        | Some t1 ->
-            match starter.second_type with
-            | Some t2 -> if (a.steamtype = t1 || a.steamtype = t2) then cSTAB_BONUS else 1
-            | None -> if (a.stamtype = t1) then cSTAB_BONUS else 1
-        | None -> 1   
-        in
-      let type_multpipler = 
-        match starter.first_type with
-        |  Some t1 ->
-            match starter.second_type with
-            | Some t2 -> (weakness a.steamtype t1) *. (weakness a.steamtype t2)
-            | None -> weakness a.steamtype t1
-        | None -> 1.   
-         in
+        match starter.first_type, starter.second_type with
+        | Some t1, Some t2 -> 
+          if (a.element = t1 || a.element = t2) then cSTAB_BONUS else 1.
+        | Some t1, None -> if (a.element = t1) then cSTAB_BONUS else 1.
+        | _ -> 1. in
+      let type_multiplier =
+        match def_type1, def_type2 with
+	| Some t1, Some t2 -> (weakness a.element t1) *. (weakness a.element t2)
+	| Some t1, None -> (weakness a.element t1)
+	| _ -> 1. in
       let hit_attack =
+        let chance = float_of_int (Random.int 99) in
         match starter.mods.accuracy_mod with
-        | -3 -> (cACCURACY_DOWN3 * a.accuracy) < (Random.int 99)
-        | -2 -> (cACCURACY_DOWN2 * a.accuracy) < (Random.int 99)
-        | -1 -> (cACCURACY_DOWN1 * a.accuracy) < (Random.int 99)
-        | 0 -> a.accuracy < (Random.int 99)
-        | 1 -> (cACCURACY_UP1 * a.accuracy) < (Random.int 99)
-        | 2 -> (cACCURACY_UP2 * a.accuracy) < (Random.int 99)
-        | 3 -> (cACCURACY_UP3 * a.accuracy) < (Random.int 99)
-        | _ -> false
-      if (attack_self_if_confused && not (snap_out_if_consfused) && List.mem Confused starter.status) then 0.
-      else if (stuck_if_paralyzed && (List.mem Confused starter.status)) then 0.
-      else if (not (defrost_if_frozen) && (List.mem Frozen starter.status)) then 0.
-      else if (not (wake_up_if_alseep) && (List.mem Asleep starter.status)) then 0.
-      else if (not hit_attack) then 0.
-      else float_of_int (a.power * attack * crit * stab) *. type_multiplier
-    in    
+        | -3 -> (cACCURACY_DOWN3 *. (float_of_int a.accuracy)) > chance
+        | -2 -> (cACCURACY_DOWN2 *. (float_of_int a.accuracy)) > chance
+        | -1 -> (cACCURACY_DOWN1 *. (float_of_int a.accuracy)) > chance
+        | 0 -> (float_of_int a.accuracy) < chance
+        | 1 -> (cACCURACY_UP1 *. (float_of_int a.accuracy)) > chance
+        | 2 -> (cACCURACY_UP2 *. (float_of_int a.accuracy)) > chance
+        | 3 -> (cACCURACY_UP3 *. (float_of_int a.accuracy)) > chance
+        | _ -> false in
+      if (attack_self_if_confused && not (snap_out_of_confused) &&
+        List.mem Confused starter.status) ||
+        (stuck_if_paralyzed && (List.mem Confused starter.status)) ||
+        (not (defrost_if_frozen) && (List.mem Frozen starter.status)) ||
+        (not (wake_up_if_asleep) && (List.mem Asleep starter.status)) ||
+        (not hit_attack) then 0.
+      else
+         let defense =
+           if is_special then float_of_int def_steammon.spl_defense 
+           else (float_of_int def_steammon.defense) *. (mod_defense def_steammon) in
+        (float_of_int a.power) *. attack *. crit *. stab *. type_multiplier /.
+        defense in    
   (* processes changes in defender's state *)
-  let defender_helper (t_data: team_data) (f: float): team_data = 
-    let (lst, inventory) = t_data in
-    let starter = List.hd lst in
-    let defense = if (is_special) then starter.spl_defense else (starter.defense * (mod_defense starter)) in
+  let defender_helper (t_data: team_data) (damage: float): team_data = 
+    let (steammon_lst, inventory) = t_data in
+    let starter = List.hd steammon_lst in (* active defending steammon *)
     let process_status (s:steammon) = 
       let (status, prob) = a.effect in
-      if (Random.int 99) > prob then s
+      if (Random.int 99) < prob then s
       else match status with
-        | Nada -> s
         | Poisons -> add_status s Poisoned
         | Confuses -> add_status s Confused
         | Sleeps -> add_status s Asleep
         | Paralyzes -> add_status s Paralyzed
         | Freezes -> add_status s Frozen
-        | SelfAttackUp1 -> s
-        | SelfDefenseUp1 -> s
-        | SelfSpeedUp1 -> s
-        | SelfAccuracyUp1 -> s
         | OpponentAttackDown1 -> change_mod s status
         | OpponentDefenseDown1 -> change_mod s status
         | OpponentSpeedDown1 -> change_mod s status
         | OpponentAccuracyDown1 -> change_mod s status
-      in    
-    let updated_steammon = process_hp starter (f /. defense) in
-    (updated_steammon::(List.tl lst), inventory)
-  in
+	| _ -> s in    
+    let updated_steammon = process_status (update_hp starter damage) in
+    (updated_steammon::(List.tl steammon_lst), inventory) in
   match team with
   | Red -> set_game_data st 
-  ((attacker_helper red_data), (defender_helper blue_data (attack_power red_data)))
+    ((attacker_helper red_data),
+    (defender_helper blue_data (attack_power red_data blue_data)))
   | Blue -> set_game_data st 
-  ((defender_helper red_data (attack_power blue_data)), (attacker_helper blue_data))
+    ((defender_helper red_data (attack_power blue_data red_data)),
+    (attacker_helper blue_data))
 
 
 (* Applies an item effect on a target steammon *)
@@ -693,7 +677,7 @@ let use_item (st: state) (team: color) (item: item) (target: steammon) : unit =
         mods =
         (* applies mod to active steammon even if target is incorrect *)
         if is_active st team x then
-	  let f (i : int) = if i = 3 then 3 else i + 1
+	  let f (i : int) = if i = 3 then 3 else i + 1 in
           if item = XAttack then 
             {attack_mod = f target.mods.attack_mod;
             speed_mod = target.mods.speed_mod;
