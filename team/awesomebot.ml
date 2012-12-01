@@ -187,23 +187,110 @@ let handle_request c r =
 					else None
 					in
 				
-				(* Finds if the attacker has an attack that can increase attack power *)
-				(* Returns a tuple of the attack and the accuracy * effect chance *)						
-				let attack_up (attacker: steammon) : (attack * float) option =
-					let helper1 (att: attack) : boolean = (fst att.effect) = Freezes in
-					let helper2 (att: attack) : float = 
+				(* Finds if the attacker has an attack that can increase attack stat*)
+				(* Returns a tuple of the attack, the % increase in attack stat, the accuracy * effect chance *)						
+				let attack_up (attacker: steammon) : (attack * float * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = SelfAttackUp1 in
+					let helper2 =
+						match attacker.mods.attack_mod with
+						| 3 -> 1.
+						| 2 -> cATTACK_UP3 /. cATTACK_UP2
+						| 1 -> cATTACK_UP2 /. cATTACK_UP1
+						| 0 -> cATTACK_UP1
+						| -1 -> 1. /. cATTACK_DOWN1
+						| -2 -> cATTACK_DOWN1 /. cATTACK_DOWN2
+						| -3 -> cATTACK_DOWN2 /. cATTACK_DOWN3
+					let helper3 (att: attack) : float = 
 						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
 					if helper1 attacker.first_attack then 
-						Some (attacker.first_attack, helper2 attacker.first_attack)
+						Some (attacker.first_attack, helper2, helper3 attacker.first_attack)
 					else if helper1 attack.second_attack then 
-						Some (attacker.second_attack, helper2 attacker.second_attack)
+						Some (attacker.second_attack, helper2, helper3 attacker.second_attack)
 					else if helper1 attack.third_attack then 
-						Some (attacker.third_attack, helper2 attacker.third_attack)
+						Some (attacker.third_attack, helper2, helper3 attacker.third_attack)
 					else if helper1 attack.fourth_attack then 
-						Some (attacker.fourth_attack, helper2 attacker.fourth_attack)
+						Some (attacker.fourth_attack, helper2, helper3 attacker.fourth_attack)
 					else None
-					in					
+					in
 					
+				(* Finds if the attacker has an attack that can increase speed stat*)
+				(* Returns a tuple of the attack, the % increase in speed stat, the accuracy * effect chance *)						
+				let speed_up (attacker: steammon) : (attack * float * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = SelfSpeedUp1 in
+					let helper2 =
+						match attacker.mods.speed_mod with
+						| 3 -> 1.
+						| 2 -> cSPEED_UP3 /. cSPEED_UP2
+						| 1 -> cSPEED_UP2 /. cSPEED_UP1
+						| 0 -> cSPEED_UP1
+						| -1 -> 1. /. cSPEED_DOWN1
+						| -2 -> cSPEED_DOWN1 /. cSPEED_DOWN2
+						| -3 -> cSPEED_DOWN2 /. cSPEED_DOWN3
+					let helper3 (att: attack) : float = 
+						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
+					if helper1 attacker.first_attack then 
+						Some (attacker.first_attack, helper2, helper3 attacker.first_attack)
+					else if helper1 attack.second_attack then 
+						Some (attacker.second_attack, helper2, helper3 attacker.second_attack)
+					else if helper1 attack.third_attack then 
+						Some (attacker.third_attack, helper2, helper3 attacker.third_attack)
+					else if helper1 attack.fourth_attack then 
+						Some (attacker.fourth_attack, helper2, helper3 attacker.fourth_attack)
+					else None
+					in															
+		
+				(* Finds if the attacker has an attack that can increase defense stat*)
+				(* Returns a tuple of the attack, the % increase in defense stat, the accuracy * effect chance *)						
+				let defense_up (attacker: steammon) : (attack * float * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = SelfDefenseUp1 in
+					let helper2 =
+						match attacker.mods.defense_mod with
+						| 3 -> 1.
+						| 2 -> cDEFENSE_UP3 /. cDEFENSE_UP2
+						| 1 -> cDEFENSE_UP2 /. cDEFENSE_UP1
+						| 0 -> cDEFENSE_UP1
+						| -1 -> 1. /. cDEFENSE_DOWN1
+						| -2 -> cDEFENSE_DOWN1 /. cDEFENSE_DOWN2
+						| -3 -> cDEFENSE_DOWN2 /. cDEFENSE_DOWN3
+					let helper3 (att: attack) : float = 
+						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
+					if helper1 attacker.first_attack then 
+						Some (attacker.first_attack, helper2, helper3 attacker.first_attack)
+					else if helper1 attack.second_attack then 
+						Some (attacker.second_attack, helper2, helper3 attacker.second_attack)
+					else if helper1 attack.third_attack then 
+						Some (attacker.third_attack, helper2, helper3 attacker.third_attack)
+					else if helper1 attack.fourth_attack then 
+						Some (attacker.fourth_attack, helper2, helper3 attacker.fourth_attack)
+					else None
+					in		
+					
+				(* Finds if the attacker has an attack that can increase accuracy stat*)
+				(* Returns a tuple of the attack, the % increase in accuracy stat, the accuracy * effect chance *)						
+				let accuracy_up (attacker: steammon) : (attack * float * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = SelfAccuracyUp1 in
+					let helper2 =
+						match attacker.mods.accuracy_mod with
+						| 3 -> 1.
+						| 2 -> cACCURACY_UP3 /. cACCURACY_UP2
+						| 1 -> cACCURACY_UP2 /. cACCURACY_UP1
+						| 0 -> cACCURACY_UP1
+						| -1 -> 1. /. cACCURACY_DOWN1
+						| -2 -> cACCURACY_DOWN1 /. cACCURACY_DOWN2
+						| -3 -> cACCURACY_DOWN2 /. cACCURACY_DOWN3
+					let helper3 (att: attack) : float = 
+						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
+					if helper1 attacker.first_attack then 
+						Some (attacker.first_attack, helper2, helper3 attacker.first_attack)
+					else if helper1 attack.second_attack then 
+						Some (attacker.second_attack, helper2, helper3 attacker.second_attack)
+					else if helper1 attack.third_attack then 
+						Some (attacker.third_attack, helper2, helper3 attacker.third_attack)
+					else if helper1 attack.fourth_attack then 
+						Some (attacker.fourth_attack, helper2, helper3 attacker.fourth_attack)
+					else None
+					in	
+										
         (*
 				(match mons with
         | h::t ->

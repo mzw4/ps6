@@ -142,7 +142,13 @@ let switch_steammon (st: state) (team: color) (s: steammon) : unit =
         spl_defense = s.spl_defense; 
         speed = s.speed; 
         status = (List.filter (fun x -> x != Confused) s.status); 
-        mods = s.mods} in
+        mods = {
+					attack_mod = 0;
+					speed_mod = 0;
+					defense_mod = 0;
+					accuracy_mod = 0;
+					} 
+				}in
       (starter::tl, inventory)
     else
       failwith "Steammon selected is not in the team."
