@@ -32,9 +32,8 @@ let handle_request c r =
             if s > stats then (n, s) else acc) steammon_tbl ("", 0) in name
       else failwith "no steammon available to pick!"
     | ActionRequest (gr) ->
-        let (r_data, b_data) = gr in
-        let team = if c = Red then r_data else b_data in
-				let strongest_attack (attacker: steammon) (defender: steammon) : attack  = 
+        let (red_data, blue_data) = gr in
+				let strongest_attack (attacker: steammon) (defender: steammon) : (attack * float) = 
 					let helper (att: attack) : float = 
 					  let is_special= 
               match att.steamtpye with
@@ -97,9 +96,9 @@ let handle_request c r =
 						then best_attack := attacker.third_attack;
 					else if ((helper !best_attack) < (helper attacker.fourth_attack))
 						then best_attack := attacker.fourth_attack;
-					!best_attack
+					(!best_attack, ((helper (!best_attack)) /. defender.current_hp))
 					in	
-        let (steammon, [a;b;c;d;e;f;g;h]) = team in
+        let (steammon, inventory) = team in
 				
         (*
 				(match mons with

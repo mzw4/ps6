@@ -251,7 +251,8 @@ let remove_item (st: state) (team: color) (i: item) : unit =
 let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack ogm"
  let attack (st: state) (team: color) (a: attack) : unit = 
   let (red_data, blue_data) = st.game_data in
-  (* booleans for handling statuses *)
+  
+	(* booleans for handling statuses *)
   let stuck_if_paralyzed = (Random.int 99) < cPARALYSIS_CHANCE in
   let defrost_if_frozen = (Random.int 99) < cDEFROST_CHANCE in
   let wake_up_if_asleep = (Random.int 99) < cWAKE_UP_CHANCE in
