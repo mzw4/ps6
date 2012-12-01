@@ -33,6 +33,8 @@ let handle_request c r =
       else failwith "no steammon available to pick!"
     | ActionRequest (gr) ->
         let (red_data, blue_data) = gr in
+				
+				(* Calculates the strongest attack based on stats, STAB, weaknesses, and crit chance *)
 				let strongest_attack (attacker: steammon) (defender: steammon) : (attack * float) = 
 					let helper (att: attack) : float = 
 					  let is_special= 
@@ -69,7 +71,7 @@ let handle_request c r =
 							| true -> (attacker.attack * mod_attack) /. (defender.defense * mod_defense)
 							| false -> starter.spl_attack /. defender.spl_defense  
 							in
-      			(* let crit = if (Random.int 99 < a.crit_chance) then cCRIT_MULTIPLIER else 1 in *)
+      			let crit = a.crit_chance *. cCRIT_MULTIPLIER /. 100. + (100. - a.crit_chance) /. 100.
       			let stab = 
         			match defender.first_type with
         			| Some t1 ->
@@ -87,7 +89,7 @@ let handle_request c r =
               | None -> 1.	
 							in
 						if (att.pp_remaining = 0) then 0.0
-						else attack_power *. stab *. type_multiplier
+						else att.power *. attack_power *. stab *. type_multiplier *. crit
 						in
 					let best_attack = ref attacker.first_attack in
 					if ((helper !best_attack) < (helper attacker.second_attack)) 
@@ -97,9 +99,111 @@ let handle_request c r =
 					else if ((helper !best_attack) < (helper attacker.fourth_attack))
 						then best_attack := attacker.fourth_attack;
 					(!best_attack, ((helper (!best_attack)) /. defender.current_hp))
+					in
+				
+				(* Finds if the attacker has an attack that can poison opponent *)
+				(* Returns a tuple of the attack and the accuracy * effect chance *)				
+				let poison_attack (attacker: steammon) : (attack * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = Poisons in
+					let helper2 (att: attack) : float = 
+						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
+					if helper1 attacker.first_attack then 
+						Some (attacker.first_attack, helper2 attacker.first_attack)
+					else if helper1 attack.second_attack then 
+						Some (attacker.second_attack, helper2 attacker.second_attack)
+					else if helper1 attack.third_attack then 
+						Some (attacker.third_attack, helper2 attacker.third_attack)
+					else if helper1 attack.fourth_attack then 
+						Some (attacker.fourth_attack, helper2 attacker.fourth_attack)
+					else None
 					in	
+					
+				(* Finds if the attacker has an attack that can confuse opponent *)
+				(* Returns a tuple of the attack and the accuracy * effect chance *)				
+				let confuse_attack (attacker: steammon) : (attack * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = Confuses in
+					let helper2 (att: attack) : float = 
+						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
+					if helper1 attacker.first_attack then 
+						Some (attacker.first_attack, helper2 attacker.first_attack)
+					else if helper1 attack.second_attack then 
+						Some (attacker.second_attack, helper2 attacker.second_attack)
+					else if helper1 attack.third_attack then 
+						Some (attacker.third_attack, helper2 attacker.third_attack)
+					else if helper1 attack.fourth_attack then 
+						Some (attacker.fourth_attack, helper2 attacker.fourth_attack)
+					else None
+					in	
+							
+				(* Finds if the attacker has an attack that can sleep opponent *)
+				(* Returns a tuple of the attack and the accuracy * effect chance *)				
+				let sleep_attack (attacker: steammon) : (attack * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = Sleeps in
+					let helper2 (att: attack) : float = 
+						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
+					if helper1 attacker.first_attack then 
+						Some (attacker.first_attack, helper2 attacker.first_attack)
+					else if helper1 attack.second_attack then 
+						Some (attacker.second_attack, helper2 attacker.second_attack)
+					else if helper1 attack.third_attack then 
+						Some (attacker.third_attack, helper2 attacker.third_attack)
+					else if helper1 attack.fourth_attack then 
+						Some (attacker.fourth_attack, helper2 attacker.fourth_attack)
+					else None
+					in
+				
+				(* Finds if the attacker has an attack that can paralyze opponent*)
+				(* Returns a tuple of the attack and the accuracy * effect chance *)				
+				let paralyze_attack (attacker: steammon) : (attack * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = Paralyzes in
+					let helper2 (att: attack) : float = 
+						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
+					if helper1 attacker.first_attack then 
+						Some (attacker.first_attack, helper2 attacker.first_attack)
+					else if helper1 attack.second_attack then 
+						Some (attacker.second_attack, helper2 attacker.second_attack)
+					else if helper1 attack.third_attack then 
+						Some (attacker.third_attack, helper2 attacker.third_attack)
+					else if helper1 attack.fourth_attack then 
+						Some (attacker.fourth_attack, helper2 attacker.fourth_attack)
+					else None
+					in
         let (steammon, inventory) = team in
 				
+				(* Finds if the attacker has an attack that can freeze opponent *)
+				(* Returns a tuple of the attack and the accuracy * effect chance *)				
+				let freeze_attack (attacker: steammon) : (attack * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = Freezes in
+					let helper2 (att: attack) : float = 
+						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
+					if helper1 attacker.first_attack then 
+						Some (attacker.first_attack, helper2 attacker.first_attack)
+					else if helper1 attack.second_attack then 
+						Some (attacker.second_attack, helper2 attacker.second_attack)
+					else if helper1 attack.third_attack then 
+						Some (attacker.third_attack, helper2 attacker.third_attack)
+					else if helper1 attack.fourth_attack then 
+						Some (attacker.fourth_attack, helper2 attacker.fourth_attack)
+					else None
+					in
+				
+				(* Finds if the attacker has an attack that can increase attack power *)
+				(* Returns a tuple of the attack and the accuracy * effect chance *)						
+				let attack_up (attacker: steammon) : (attack * float) option =
+					let helper1 (att: attack) : boolean = (fst att.effect) = Freezes in
+					let helper2 (att: attack) : float = 
+						(float_of_int att.accuracy) * (float_of_int (snd att.effect)) /. 10000.
+					if helper1 attacker.first_attack then 
+						Some (attacker.first_attack, helper2 attacker.first_attack)
+					else if helper1 attack.second_attack then 
+						Some (attacker.second_attack, helper2 attacker.second_attack)
+					else if helper1 attack.third_attack then 
+						Some (attacker.third_attack, helper2 attacker.third_attack)
+					else if helper1 attack.fourth_attack then 
+						Some (attacker.fourth_attack, helper2 attacker.fourth_attack)
+					else None
+					in					
+					
         (*
 				(match mons with
         | h::t ->

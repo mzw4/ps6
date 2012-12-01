@@ -690,26 +690,27 @@ let use_item (st: state) (team: color) (item: item) (target: steammon) : unit =
         mods =
         (* applies mod to active steammon even if target is incorrect *)
         if is_active st team x then
+					let f (i : int) = if i = 3 then 3 else i + 1
           if item = XAttack then 
-            {attack_mod = target.mods.attack_mod + 1;
+            {attack_mod = f target.mods.attack_mod;
             speed_mod = target.mods.speed_mod;
             defense_mod = target.mods.defense_mod;
             accuracy_mod = target.mods.accuracy_mod}
           else if item = XDefense then
             {attack_mod = target.mods.attack_mod;
             speed_mod = target.mods.speed_mod;
-            defense_mod = target.mods.defense_mod + 1;
+            defense_mod = f target.mods.defense_mod;
             accuracy_mod = target.mods.accuracy_mod}
           else if item = XSpeed then
             {attack_mod = target.mods.attack_mod;
-            speed_mod = target.mods.speed_mod + 1;
+            speed_mod = f target.mods.speed_mod;
             defense_mod = target.mods.defense_mod;
             accuracy_mod = target.mods.accuracy_mod}
           else if item = XAccuracy then
             {attack_mod = target.mods.attack_mod;
             speed_mod = target.mods.speed_mod;
             defense_mod = target.mods.defense_mod;
-            accuracy_mod = target.mods.accuracy_mod + 1}
+            accuracy_mod = f target.mods.accuracy_mod}
           else target.mods
         else target.mods} in
       updated_steammon::acc end
