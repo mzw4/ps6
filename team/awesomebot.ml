@@ -7,7 +7,7 @@ open Constants
  * You should change all of the inside and write many helper functions if you
  * want to have a good bot.
  *)
-let _ = Random.self_init ()
+let _ = Random.self_init () 
 
 let handle_request c r =
   match r with
@@ -34,7 +34,8 @@ let handle_request c r =
     | ActionRequest (gr) ->
         let (red_data, blue_data) = gr in
 				
-				(* Calculates the strongest attack based on stats, STAB, weaknesses, and crit chance *)
+				(* Calculates the strongest attack based on attacker and defender stats, STAB, and weaknesses*)
+				(* outputs a tuple of the attack, the damage done as a ratio to opponent's hp, and the chance of hitting *)
 				let strongest_attack (attacker: steammon) (defender: steammon) : (attack * float) = 
 					let helper (att: attack) : float = 
 					  let is_special= 
@@ -71,7 +72,7 @@ let handle_request c r =
 							| true -> (attacker.attack * mod_attack) /. (defender.defense * mod_defense)
 							| false -> starter.spl_attack /. defender.spl_defense  
 							in
-      			let crit = a.crit_chance *. cCRIT_MULTIPLIER /. 100. + (100. - a.crit_chance) /. 100.
+      			(* let crit = a.crit_chance *. cCRIT_MULTIPLIER /. 100. + (100. - a.crit_chance) /. 100. *)
       			let stab = 
         			match defender.first_type with
         			| Some t1 ->
@@ -89,7 +90,20 @@ let handle_request c r =
               | None -> 1.	
 							in
 						if (att.pp_remaining = 0) then 0.0
-						else att.power *. attack_power *. stab *. type_multiplier *. crit
+						else att.power *. attack_power *. stab *. type_multiplier (* *. crit *)
+						in
+					let accuracy (att: attack) : float = 
+						let attacker_mods = 
+  						match attacker.mods.accuracy_mod with
+  						| 3 -> cACCURACY_UP3 
+  						| 2 -> cACCURACY_UP2
+  						| 1 -> cACCURACY_UP1
+  						| 0 -> 1.
+  						| -1 -> cACCURACY_DOWN1
+  						| -2 -> cACCURACY_DOWN2
+  						| -3 -> cACCURACY_DOWN3	
+							in
+						if (attacker_mods * att.accuracy /. 100.) > 1. then 1. else (attacker_mods * att.accuracy /. 100.)
 						in
 					let best_attack = ref attacker.first_attack in
 					if ((helper !best_attack) < (helper attacker.second_attack)) 
@@ -98,7 +112,7 @@ let handle_request c r =
 						then best_attack := attacker.third_attack;
 					else if ((helper !best_attack) < (helper attacker.fourth_attack))
 						then best_attack := attacker.fourth_attack;
-					(!best_attack, ((helper (!best_attack)) /. defender.current_hp))
+					(!best_attack, ((helper (!best_attack)) /. defender.current_hp), accuracy (!best_attack))
 					in
 				
 				(* Finds if the attacker has an attack that can poison opponent *)
