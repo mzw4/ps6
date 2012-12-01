@@ -20,34 +20,17 @@ let handle_request c r =
       let pick = try List.find(fun x -> x.curr_hp > 0) lst with _ -> (List.hd lst) in
         SelectStarter(pick.species)
     | PickRequest(_, _, _, sp) ->
-        let((r_steammon, r_inventory), (b_steammon, b_inventory)) = gs in
-        let my_steammon = 
-          match c with 
-	  | Red -> r_steammon
-	  | Blue -> b_steammon in
-        let stats_tbl = Hashtbl.create 300 in
-        List.fold_left (fun acc x ->
-          let stats = (x.max_hp / 2) + x.attack + x.spl_attack + x.defense +
-            x.spl_defense + x.speed in
-          Hashtbl.add stats_tbl (x.species) (stats, x.first_type, x.second_type)
-        ) () sp;
-        if Hashtbl.length > 0 then
-          (* do not want if already have steammon or
-             already have 2 steammon of a type *)
-          let still_want steamons n t1 t2 =
-            let rating = List.fold_left (fun acc x ->
-              if x.species = n then 2
-              else if ((x.first_type = t1 || x.second_type = t1) && t1 <> None) ||
-                       (x.first_type = t2 || x.second_type = t2) && t2 <> None) then 
-                acc + 1
-              else acc) 0 steammons in
-            (rating < 2) in
-          let (name,_,_,_) = 
-            Hashtbl.fold (fun k (n, s, t1, t1) (species, stats) -> 
-              if s > stats && (still_want my_steammon n t1 t2) then
-                (n, s, t1, t2)
-              else acc) stats_tbl ("", 0, Normal, Normal) in name
-        else failwith "no steammon available to pick!"
+      let steammon_tbl = Hashtbl.create 300 in
+      List.fold_left (fun acc x ->
+        let statsum = (x.maxHP / 4) + x.attack + x.spl_attack + x.defense +
+          x.spl_defense + x.speed in
+        Hashtbl.add (x.species) statsum
+      ) () sp;
+      if Hashtbl.length > 0 then
+        let (name, statsum) = 
+          Hashtbl.fold (fun k (n, s) (species, stats) -> 
+            if s > stats then (n, s) else acc) steammon_tbl ("", 0) in name
+      else failwith "no steammon available to pick!"
     | ActionRequest (gr) ->
         let (red_data, blue_data) = gr in
 				
@@ -348,20 +331,21 @@ let handle_request c r =
       let(r_data, b_data) = gs in
       let (steammon, inventory) = 
         match c with 
-	| Red -> r_data
-	| Blue -> b_data in
-      let ethers = 0 in
-      let max_potions = (cash / 2) / cCOST_MAXPOTION in
-      cash := cash - (max_potions * cCOST_MAXPOTION);
-      let revives = (cash / 3) / cCOST_REVIVE in
-      cash := cash - (revives * cCOST_REVIVE);
-      let full_heals = cash / cCOST_FULLHEAL in 
-      cash := cash - (full_heals * cCOST_FULLHEAL);
-      let xattacks = 0 in
-      let xdefenses = 0 in
-      let xaccuracies = 0 in
-      let xspeeds = 0 in
-      PickInventory(
-	[ethers; max_potions; revives; full_heals;
-	xattacks; xdefenses; xaccuracies; xspeeds])
+      	| Red -> r_data
+      	| Blue -> b_data in
+            let ethers = 0 in
+            let max_potions = (cash / 2) / cCOST_MAXPOTION in
+            cash := cash - (max_potions * cCOST_MAXPOTION);
+            let revives = (cash / 3) / cCOST_REVIVE in
+            cash := cash - (revives * cCOST_REVIVE);
+            let full_heals = cash / cCOST_FULLHEAL in 
+            cash := cash - (full_heals * cCOST_FULLHEAL);
+            let xattacks = 0 in
+            let xdefenses = 0 in
+            let xaccuracies = 0 in
+            let xspeeds = 0 in
+            PickInventory(
+          	[ethers; max_potions; revives; full_heals;
+          	xattacks; xdefenses; xaccuracies; xspeeds])
+
 let () = run_bot handle_request

@@ -254,8 +254,7 @@ let remove_item (st: state) (team: color) (i: item) : unit =
   | Blue -> set_game_data st (red_data, (helper blue_data))
 
 (* Processes an attack and calculates the changes in states *)
-let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack ogm"
- let attack (st: state) (team: color) (a: attack) : unit = 
+let attack (st: state) (team: color) (a: attack) : unit = 
   let (red_data, blue_data) = st.game_data in
   
 	(* booleans for handling statuses *)
@@ -383,9 +382,8 @@ let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack 
 		in			
   (* processes hp changes *)  
   let update_hp (s: steammon) (f : float) : steammon =
-    let new_hp = if (starter.current_hp < (inf_of_float f) then 0 
+    let new_hp = if (starter.current_hp < (inf_of_float f)) then 0 
       else (starter.current_hp - (int_of_float f)) in
-    let updated_steammon = 
       {species = starter.species; 
       curr_hp = new_hp; 
       max_hp = starter.max_hp; 
@@ -401,17 +399,16 @@ let attack (st: state) (team: color) (a: attack) : unit = failwith "used attack 
       spl_defense = starter.spl_defense; 
       speed = starter.speed; 
       status = starter.status; 
-      mods = starter.mods}
+      mods = starter.mods} in
   (* processes changes in attacker's state *)  
   let attacker_helper (t_data: team_data) : team_data = 
     let (lst, inventory) = t_data in
     let starter = List.hd lst in
     let f (a: attack) : attack = 
-      if (a.pp_remaining <= 0) then failwith "No PP left for that attack" 
+      if (a.pp_remaining <= 0) then a (* don't do anything *)
       else {name = a.name ; element = a.element ; max_pp = a.max_pp; 
       pp_remaining = (a.pp_remaining - 1); power = a.power; accuracy = 
-        a.accuracy; crit_chance = a.crit_chance; effect = a.effect} 
-      in    
+        a.accuracy; crit_chance = a.crit_chance; effect = a.effect} in
     let use_pp (s: steammon) : steammon = 
       match a.name with
       | s.first_attack.name -> 
@@ -696,7 +693,7 @@ let use_item (st: state) (team: color) (item: item) (target: steammon) : unit =
         mods =
         (* applies mod to active steammon even if target is incorrect *)
         if is_active st team x then
-					let f (i : int) = if i = 3 then 3 else i + 1
+	  let f (i : int) = if i = 3 then 3 else i + 1
           if item = XAttack then 
             {attack_mod = f target.mods.attack_mod;
             speed_mod = target.mods.speed_mod;
