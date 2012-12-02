@@ -26,16 +26,10 @@ let game_datafication (g:game) : game_status_data = g.game_data
 let handle_step (g:game) (ra:command) (ba:command) : game_output =
   print_endline "HANDLIN";
   let performStep (team: color) (c: command) (s:game) : unit =
-    print_endline( "performing step for " ^ (color_to_string team));
-      if team = Red then (match c with
-      | Action(PickSteammon str) -> print_endline ("it was pick for Red")
-      | _ -> print_endline ("not a pick for red"));
     match c with
     | Action act ->
-      print_endline "Matching action";
       (match act with
       | PickSteammon str ->
-        print_endline ("adding " ^ str ^ " for " ^ (color_to_string team));
         State.add_steammon s team (Hashtbl.find steammon_tbl str);
         Netgraphics.send_update
           (UpdateSteammon(str, State.get_curr_hp s team str,
@@ -52,7 +46,7 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
         State.use_item s team item (Hashtbl.find steammon_tbl str);
       | UseAttack str ->
         State.attack s team (Hashtbl.find attack_tbl str);)
-    | _ -> print_endline "OMG"; () in
+    | _ -> () in
   let nextRequest (team: color) (c:command) (s:game) : command option =
     match c with
     | Action act ->
@@ -76,7 +70,10 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
       | SwitchSteammon str ->
         Some(Request(ActionRequest(s.game_data)))
       | UseItem (item, str) ->
-        Some(Request(ActionRequest(s.game_data)))
+        if State.active_fainted s team then
+          Some(Request(StarterRequest(s.game_data)))
+        else
+          Some(Request(ActionRequest(s.game_data)))
       | UseAttack str ->
         if State.active_fainted s team then
           Some(Request(StarterRequest(s.game_data)))
@@ -124,16 +121,16 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
 
   State.print_steammon g; (* delete *)
   State.print_inventory g;
-    (match redRequest with
-    | Some(Request(PickRequest (_,_,_,_))) -> print_endline "It's a red pick request!"
-    | Some(Request(StarterRequest (_))) -> print_endline "It's a red starter request!"
-    | _ -> print_endline "other red request");
+    (* (match redRequest with *)
+    (* | Some(Request(PickRequest (_,_,_,_))) -> print_endline "It's a red pick request!" *)
+    (* | Some(Request(StarterRequest (_))) -> print_endline "It's a red starter request!" *)
+    (* | _ -> print_endline "other red request"); *)
     
-    (match blueRequest with
-    | Some(Request(PickRequest (_,_,_,_))) -> print_endline "It's a blue pick request!"
-    | Some(Request(StarterRequest (_))) -> print_endline "It's a blue starter request!"
-    | None -> print_endline "blue does nothing!"
-    | _ -> print_endline "other blue request");
+    (* (match blueRequest with *)
+    (* | Some(Request(PickRequest (_,_,_,_))) -> print_endline "It's a blue pick request!" *)
+    (* | Some(Request(StarterRequest (_))) -> print_endline "It's a blue starter request!" *)
+    (* | None -> print_endline "blue does nothing!" *)
+    (* | _ -> print_endline "other blue request"); *)
 
   (result, g.game_data, redRequest, blueRequest)
 

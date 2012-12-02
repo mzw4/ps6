@@ -14,8 +14,10 @@ let set_game_data (st: state) (game_data: game_status_data) : unit =
 
 let print_steammon st =
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
-  let rmons = List.fold_left (fun acc x -> acc ^ " " ^(x.species)) "" r_steammon in
-  let bmons = List.fold_left (fun acc x -> acc ^" "^ (x.species)) "" b_steammon in
+  let rmons = List.fold_left (fun acc x ->
+    acc ^ " " ^(x.species) ^ " " ^ (string_of_int x.curr_hp) ^ " ") "" r_steammon in
+  let bmons = List.fold_left (fun acc x ->
+    acc ^" "^ (x.species) ^ " " ^ (string_of_int x.curr_hp) ^ " ") "" b_steammon in
   print_endline ("Red: " ^ rmons);
   print_endline ("Blue: " ^ bmons)
 
@@ -128,10 +130,11 @@ let add_steammon (st: state) (team: color) (steammon: steammon) : unit =
 (* Switches a steammon so it appears at the head of a the steammon list. *)
 (* Throws an exception if that steammon is not in the list. *)
 let switch_steammon (st: state) (team: color) (s: steammon) : unit =
+print_endline ((color_to_string team) ^ " switching to " ^ s.species);
   let (red_data, blue_data) = st.game_data in
   let helper (t_data: team_data) : team_data =
     let (lst, inventory) = t_data in
-    if (List.exists (fun x -> x.species = s.species) lst) then
+    if (List.exists (fun x -> x.species = s.species && x.curr_hp > 0) lst) then
       let tl = List.filter (fun x -> x.species <> s.species) lst in 
       let starter = 
 	{species = s.species; 
@@ -155,10 +158,12 @@ let switch_steammon (st: state) (team: color) (s: steammon) : unit =
 	defense_mod = 0;
 	accuracy_mod = 0;}} in
       Netgraphics.send_update (SetStatusEffects(starter.species, starter.status));
+      Netgraphics.send_update (Message((color_to_string team) ^
+        " switched in " ^ starter.species));
       (starter::tl, inventory)
     else
-      failwith "Steammon selected is not in the team."
-  in  
+      (Netgraphics.send_update (Message("Cannot switch in that steammon!"));
+      (lst, inventory)) in  
   match team with 
   | Red -> set_game_data st ((helper red_data), blue_data)
   | Blue -> set_game_data st (red_data, (helper blue_data))
@@ -223,19 +228,15 @@ let add_item (st: state) (team: color) (i: item) : unit =
   | Blue -> set_game_data st (red_data, (helper blue_data))
 
     
-(* Removes an item to a team's inventory. If there are none of that item in the inventory. *)
-(* Throws an exception *)  
-let remove_item (st: state) (team: color) (i: item) : unit =
-  let (red_data, blue_data) = st.game_data in
-  let helper (t_data: team_data) : team_data =
-    let (lst, inventory) = t_data in
+(* Removes an item to a team's inventory. *)
+let remove_item (inventory: int list) (i: item) : int list =
     let newInventory = 
       match inventory with 
       | [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses;
         xSpeeds; xAccuracies] ->
         let f (i: int) : int =
           if (i > 0) then i - 1
-          else failwith "There are none of that item left" in
+          else 0 in
         (match i with
         | Ether -> [(f ethers) ; maxPotions; revives; fullHeals; xAttacks; xDefenses;
           xSpeeds; xAccuracies]
@@ -253,14 +254,11 @@ let remove_item (st: state) (team: color) (i: item) : unit =
           (f xSpeeds); xAccuracies]
         | XAccuracy -> [ethers; maxPotions; revives; fullHeals; xAttacks; xDefenses;
           xSpeeds; (f xAccuracies)])
-      | _ -> failwith "invalid inventory" in
-    (lst, newInventory) in
-  match team with
-  | Red -> set_game_data st ((helper red_data), blue_data)
-  | Blue -> set_game_data st (red_data, (helper blue_data))
+      | _ -> failwith "invalid inventory" in newInventory
 
 (* Processes an attack and calculates the changes in states *)
 let attack (st: state) (team: color) (a: attack) : unit = 
+  print_endline ((color_to_string team) ^ " attacking with " ^ a.name);
   let (red_data, blue_data) = st.game_data in
   (* booleans for handling statuses *)
   let stuck_if_paralyzed = (Random.int 99) < cPARALYSIS_CHANCE in
@@ -378,6 +376,8 @@ let attack (st: state) (team: color) (a: attack) : unit =
   let update_hp (s: steammon) (f : float) : steammon =
     let new_hp = if (s.curr_hp < (int_of_float f)) then 0 
       else (s.curr_hp - (int_of_float f)) in
+print_endline ("damange done: " ^ (string_of_float f));
+print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
     {species = s.species; 
     curr_hp = new_hp; 
     max_hp = s.max_hp; 
@@ -503,6 +503,7 @@ let attack (st: state) (team: color) (a: attack) : unit =
         update_hp s self_dmg
       else use_pp s in  
     let updated_starter =
+      print_endline "updating starter";
       let other_status = List.filter (fun x -> x <> Confused) starter.status in 
       if (List.mem Confused starter.status) then
         match other_status with
@@ -591,15 +592,17 @@ let attack (st: state) (team: color) (a: attack) : unit =
 	| _ -> 1. in
       let hit_attack =
         let chance = float_of_int (Random.int 99) in
+print_endline ("accuracymod: " ^ (string_of_int starter.mods.accuracy_mod) ^ " chance: " ^ (string_of_float chance) ^ " accuracy: " ^ (string_of_int a.accuracy));
         match starter.mods.accuracy_mod with
         | -3 -> (cACCURACY_DOWN3 *. (float_of_int a.accuracy)) > chance
         | -2 -> (cACCURACY_DOWN2 *. (float_of_int a.accuracy)) > chance
         | -1 -> (cACCURACY_DOWN1 *. (float_of_int a.accuracy)) > chance
-        | 0 -> (float_of_int a.accuracy) < chance
+        | 0 -> (float_of_int a.accuracy) > chance
         | 1 -> (cACCURACY_UP1 *. (float_of_int a.accuracy)) > chance
         | 2 -> (cACCURACY_UP2 *. (float_of_int a.accuracy)) > chance
         | 3 -> (cACCURACY_UP3 *. (float_of_int a.accuracy)) > chance
         | _ -> false in
+print_endline ("hit? " ^(string_of_bool hit_attack));
       if (attack_self_if_confused && not (snap_out_of_confused) &&
         List.mem Confused starter.status) ||
         (stuck_if_paralyzed && (List.mem Confused starter.status)) ||
@@ -610,6 +613,7 @@ let attack (st: state) (team: color) (a: attack) : unit =
          let defense =
            if is_special then float_of_int def_steammon.spl_defense 
            else (float_of_int def_steammon.defense) *. (mod_defense def_steammon) in
+         print_endline ("attack: " ^ (string_of_float attack) ^ " crit: " ^ (string_of_float crit) ^ " stab: " ^ (string_of_float stab) ^ " typemult: " ^ (string_of_float type_multiplier) ^ " defense: " ^ (string_of_float defense));
         (float_of_int a.power) *. attack *. crit *. stab *. type_multiplier /.
         defense in    
   (* processes changes in defender's state *)
@@ -635,8 +639,13 @@ let attack (st: state) (team: color) (a: attack) : unit =
       if (int_of_float damage) > starter.curr_hp then starter.curr_hp
       else int_of_float damage in
     let updated_steammon = process_status (update_hp starter damage) in
+print_endline ("remaining hp: " ^ (string_of_int updated_steammon.curr_hp));
+print_endline ("damage: " ^ (string_of_int hp_diff));
     Netgraphics.send_update (NegativeEffect(updated_steammon.species,
       team, hp_diff));
+    Netgraphics.send_update
+      (UpdateSteammon(updated_steammon.species, updated_steammon.curr_hp,
+      updated_steammon.max_hp, team));
     Netgraphics.send_update
       (SetStatusEffects(updated_steammon.species, updated_steammon.status));
     (updated_steammon::(List.tl steammon_lst), inventory) in
@@ -651,7 +660,10 @@ let attack (st: state) (team: color) (a: attack) : unit =
 
 (* Applies an item effect on a target steammon *)
 let use_item (st: state) (team: color) (item: item) (target: steammon) : unit = 
+print_endline ((color_to_string team) ^  " using " ^ (string_of_item item));
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  Netgraphics.send_update 
+    (Message((color_to_string team) ^ " used " ^ (string_of_item item) ^ "!"));
   let apply (steammon: steammon list) =
     List.fold_left (fun acc x ->
     if x.species = target.species || item = XAttack || item = XDefense 
@@ -738,13 +750,12 @@ let use_item (st: state) (team: color) (item: item) (target: steammon) : unit =
       updated_steammon::acc end
       else x::acc
     ) [] steammon in
-  if inventory_contains st Red item then 
-    (remove_item st Red item;
-    match team with 
-    | Red -> 
+  match team with 
+  | Red -> 
+    if (inventory_contains st Red item) then
       set_game_data st
-      ((apply r_steammon, r_inventory), (b_steammon, b_inventory))
-    | Blue ->
+      ((apply r_steammon, remove_item r_inventory item), (b_steammon, b_inventory))
+  | Blue ->
+    if (inventory_contains st Red item) then
       set_game_data st
-      ((r_steammon, r_inventory), (apply b_steammon, b_inventory)))
-  else failwith "You ran out of that item"
+      ((r_steammon, r_inventory), (apply b_steammon, remove_item b_inventory item))
