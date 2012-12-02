@@ -447,15 +447,22 @@ let handle_request c r =
             !optimal
             in
           let secondary = 
-            let optimal = ref attacking_pkmn.first_attack in
-            if (calculate_weights attacking_pkmn defending_pkmn !optimal) < 
-              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.second_attack)
+            let optimal = ref attacking_pkmn.fourth_attack in
+						if ((calculate_weights attacking_pkmn defending_pkmn !optimal) < 
+              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.first_attack)) &&
+							(attacking_pkmn.first_attack.pp_remaining > 0)
+              then optimal := attacking_pkmn.first_attack;
+            if ((calculate_weights attacking_pkmn defending_pkmn !optimal) < 
+              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.second_attack)) &&
+							(attacking_pkmn.second_attack.pp_remaining > 0)
               then optimal := attacking_pkmn.second_attack;
-            if (calculate_weights attacking_pkmn defending_pkmn !optimal) < 
-              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.third_attack)
+            if ((calculate_weights attacking_pkmn defending_pkmn !optimal) < 
+              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.third_attack)) &&
+							(attacking_pkmn.third_attack.pp_remaining > 0)
               then optimal := attacking_pkmn.third_attack;
-            if (calculate_weights attacking_pkmn defending_pkmn !optimal) < 
-              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.fourth_attack)
+            if ((calculate_weights attacking_pkmn defending_pkmn !optimal) < 
+              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.fourth_attack)) &&
+							(attacking_pkmn.fourth_attack.pp_remaining > 0)
               then optimal := attacking_pkmn.fourth_attack;            
             !optimal
             in 
