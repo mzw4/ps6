@@ -36,7 +36,7 @@ let handle_request c r =
             (x.species, stats, x.first_type, x.second_type)
         ) () sp;
         if Hashtbl.length stats_tbl > 0 then
-          (* do not want if already have steammon or
+          (* do not want steammon is taken or
              already have 2 steammon of a type *)
           let still_want steammons n t1 t2 =
             let available lst =
@@ -100,18 +100,18 @@ let handle_request c r =
             in
           (* let crit = a.crit_chance *. cCRIT_MULTIPLIER /. 100. + (100. - a.crit_chance) /. 100. *)
           let stab = 
-            match defender.first_type with
+            match attacker.first_type with
             | Some t1 -> begin
-              match defender.second_type with
+              match attacker.second_type with
               | Some t2 -> if (att.element = t1 || att.element = t2) then cSTAB_BONUS else 1.
               | None -> if (att.element = t1) then cSTAB_BONUS else 1.
               end
             | None -> 1.   
             in
           let type_multiplier = 
-            match attacker.first_type with
+            match defender.first_type with
             |  Some t1 -> begin
-                match attacker.second_type with
+                match defender.second_type with
                 | Some t2 -> (weakness att.element t1) *. (weakness att.element t2)
                 | None -> weakness att.element t1
                 end
@@ -333,7 +333,7 @@ let handle_request c r =
         let calculate_weights (attacker: steammon) (defender: steammon) (att: attack) : float  = 
           let has_status = (List.mem Poisoned defender.status) || (List.mem Paralyzed defender.status) ||
             (List.mem Asleep defender.status) || (List.mem Frozen defender.status) in
-          let is_poisoned = List.mem Poisoned defender.status in
+          (* let is_poisoned = List.mem Poisoned defender.status in *)
           let is_confused = List.mem Confused defender.status in
           let is_paralyzed = List.mem Paralyzed defender.status in
           let is_asleep = List.mem Asleep defender.status in
@@ -430,7 +430,7 @@ let handle_request c r =
           paralysis_weight (paralyze_effect att) +. sleep_weight (sleep_effect att) +. freeze_weight (freeze_effect att) +.
           sleep_weight (sleep_effect att) +. att_up_weight (attack_up attacker att) +. spe_up_weight (speed_up attacker att) +. 
           def_up_weight (defense_up attacker att) +. acc_up_weight (accuracy_up attacker att) +. 
-          att_down_weight (attack_down defender att) +. spe_up_weight (speed_down defender att) +. 
+          att_down_weight (attack_down defender att) +. spe_down_weight (speed_down defender att) +. 
           def_down_weight (defense_down defender att) +. acc_down_weight (accuracy_down defender att)
           in
         
@@ -490,7 +490,7 @@ let handle_request c r =
             in
             match s.first_type with
             | Some t1 -> begin
-              match defending_pkmn.second_type with
+              match s.second_type with
               | Some t2 -> helper t2 *. helper t1
               | None -> helper t1
               end
@@ -506,7 +506,7 @@ let handle_request c r =
             let a = attacking_pkmn.mods.attack_mod + attacking_pkmn.mods.speed_mod + attacking_pkmn.mods.defense_mod in
             let b = attacking_pkmn.mods.accuracy_mod in
             let c = if (List.mem Confused attacking_pkmn.status) then 1 else 0 in
-            (2 * a + 3 * b + 5 * c) > 6 
+            (2 * a + 3 * b - 5 * c) < -6 
             in
           if (attacking_pkmn.curr_hp = 0) then
             Some best_steammon
@@ -518,17 +518,22 @@ let handle_request c r =
         let items (attacking_team: team_data) (defending_team: team_data) : (item * steammon) option=
           let attacking_pkmn = List.hd (fst attacking_team) in
           let defending_pkmn = List.hd (fst defending_team) in
-          let [ethers; max_potions; revives; full_heals; xAttacks; xSpeeds; xDefenses; xAccuracies] = snd attacking_team in
+          let fainted = List.filter (fun s -> s.curr_hp = 0) (fst attacking_team) in
+          match snd attacking_team with 
+	  | [ethers; max_potions; revives; full_heals; xAttacks; xSpeeds;
+             xDefenses; xAccuracies] -> begin
           if (((snd (strongest_attack defending_pkmn attacking_pkmn) >= 1.0) && 
             ((float_of_int attacking_pkmn.curr_hp /. float_of_int attacking_pkmn.max_hp) <= (1. /. 3.))) || 
             ((float_of_int attacking_pkmn.curr_hp /. float_of_int attacking_pkmn.max_hp) <= (1. /. 10.))) &&
             (max_potions > 0)
-            then Some (MaxPotion , attacking_pkmn)
-          else if ((List.length (List.filter (fun s -> s.curr_hp = 0) (fst attacking_team))) > 0) && (revives > 0)
-            then Some (Revive , (List.hd (List.filter (fun s -> s.curr_hp = 0) (fst attacking_team))))
+            then Some (MaxPotion, attacking_pkmn)
+          else if ((List.length fainted > 0)  && (revives > 0))
+            then Some (Revive, List.hd fainted)
           else if ((List.mem Paralyzed attacking_pkmn.status) || (List.mem Poisoned attacking_pkmn.status)) && (full_heals > 0)
-            then Some (FullHeal , attacking_pkmn)
+            then Some (FullHeal, attacking_pkmn)
           else None
+          end
+	  | _ -> failwith "invalid inventory"
           in
         
         let helper (a: team_data) (b: team_data) : action =
@@ -542,43 +547,20 @@ let handle_request c r =
         begin
         match c with 
         | Red -> helper red_data blue_data
-        | _ -> helper blue_data red_data
+        | _ -> helper blue_data red_data  
         end
-        (*
-        (match mons with
-        | h::t ->
-          if h.curr_hp < h.max_hp && b > 0 then UseItem (MaxPotion,h.species) else
-            if (h.first_attack).pp_remaining >0 then
-              let _ = print_endline (h.species ^ "used " ^ ((h.first_attack).name)) in
-                UseAttack((h.first_attack).name)
-            else if ((h.second_attack).pp_remaining > 0) then
-              let _ = print_endline (h.species ^ "used " ^ ((h.second_attack).name)) in
-                UseAttack((h.second_attack).name)
-            else if ((h.third_attack).pp_remaining > 0) then
-              let _ = print_endline (h.species ^ "used " ^ ((h.third_attack).name)) in
-                UseAttack((h.third_attack).name)
-            else
-              let _ = print_endline (h.species ^ "used " ^ ((h.fourth_attack).name)) in
-                UseAttack((h.fourth_attack).name)
-                
-        | _ -> failwith "WHAT IN THE NAME OF ZARDOZ HAPPENED HERE")
-        *)
-        
     | PickInventoryRequest (gs) -> 
       let cash = ref cINITIAL_CASH in
       let maxPotionCash = !cash / 2 in
       let reviveCash = !cash / 3 in
-      let(r_data, b_data) = gs in
-      let (steammon, inventory) = 
-        match c with 
-        | Red -> r_data
-        | Blue -> b_data in
+      let fullHealCash = !cash / 6 in
+      (* pick item amounts *)
       let ethers = 0 in
-      let max_potions = (!cash / 2) / cCOST_MAXPOTION in
+      let max_potions = maxPotionCash / cCOST_MAXPOTION in
       cash := !cash - (max_potions * cCOST_MAXPOTION);
-      let revives = (!cash / 3) / cCOST_REVIVE in
+      let revives = reviveCash / cCOST_REVIVE in
       cash := !cash - (revives * cCOST_REVIVE);
-      let full_heals = (!cash / 6) / cCOST_FULLHEAL in 
+      let full_heals = fullHealCash / cCOST_FULLHEAL in 
       cash := !cash - (full_heals * cCOST_FULLHEAL);
       let xattacks = 0 in
       let xdefenses = 0 in

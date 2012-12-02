@@ -157,12 +157,13 @@ print_endline ((color_to_string team) ^ " switching to " ^ s.species);
   speed_mod = 0;
   defense_mod = 0;
   accuracy_mod = 0;}} in
-      Netgraphics.send_update (SetStatusEffects(starter.species, starter.status));
-      Netgraphics.send_update (Message((color_to_string team) ^
+      Netgraphics.add_update (SetStatusEffects(starter.species, starter.status));
+      Netgraphics.add_update (SetChosenSteammon(starter.species));
+      Netgraphics.add_update (Message((color_to_string team) ^
         " switched in " ^ starter.species));
       (starter::tl, inventory)
     else
-      (Netgraphics.send_update (Message("Cannot switch in that steammon!"));
+      (Netgraphics.add_update (Message("Cannot switch in that steammon!"));
       (lst, inventory)) in  
   match team with 
   | Red -> set_game_data st ((helper red_data), blue_data)
@@ -294,12 +295,23 @@ let attack (st: state) (team: color) (a: attack) : unit =
     status = status; 
     mods = s.mods} in
   let add_status (s: steammon) (stat: status) : steammon = 
+    let string_of_stat stat =
+      match stat with 
+      | Confused -> "confused"
+      | Poisoned -> "poisoned"
+      | Paralyzed -> "paralyzed"
+      | Asleep -> "asleep"
+      | Frozen -> "frozen" in
     let new_status = 
       if (stat = Confused && (List.mem Confused s.status)) ||
          (stat <> Confused && (
          (List.mem Poisoned s.status) || (List.mem Asleep s.status) || 
          (List.mem Paralyzed s.status) || (List.mem Frozen s.status))) then s.status
-      else stat::s.status in
+      else 
+        (Netgraphics.add_update
+          (NegativeEffect(s.species ^ " is " ^ (string_of_stat stat) ^ "!",
+          opposite_color team, 0));
+        stat::s.status) in
      set_status s new_status in
   (* updates mods *)  
   let change_mod (s: steammon) (e:effects) : steammon = 
@@ -484,10 +496,10 @@ print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
           | _ -> s
   else s in
     let process_confused (s: steammon) : steammon = 
-      Netgraphics.send_update
+      Netgraphics.add_update
         (Message(s.species ^ " is confused..."));
       if snap_out_of_confused then begin
-        Netgraphics.send_update
+        Netgraphics.add_update
           (Message(s.species ^ " snapped out of confusion!"));
         use_pp (set_status s (List.filter (fun x -> x <> Confused) s.status))
         end        
@@ -496,10 +508,11 @@ print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
         let hp_diff =
           if (int_of_float self_dmg) > s.curr_hp then s.curr_hp
           else (int_of_float self_dmg) in
-        Netgraphics.send_update (NegativeEffect(s.species,
-          team, hp_diff));
-        Netgraphics.send_update
-          (Message(s.species ^ " hurt itself in confusion!"));
+        Netgraphics.add_update (NegativeEffect(
+          s.species ^ " hurt itself in confusion!", team, hp_diff));
+        Netgraphics.add_update
+          (UpdateSteammon(starter.species, starter.curr_hp - hp_diff,
+          starter.max_hp, team));
         update_hp s self_dmg
       else use_pp s in  
     let updated_starter =
@@ -528,10 +541,11 @@ print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
           let hp_diff = 
             if (int_of_float pdmg) > starter.curr_hp then starter.curr_hp
             else (int_of_float pdmg) in
-          Netgraphics.send_update (NegativeEffect(starter.species,
-            team, hp_diff));
-          Netgraphics.send_update
-            (Message(starter.species ^ " was hurt by poison!"));
+          Netgraphics.add_update (NegativeEffect(
+            starter.species ^ "was hurt by poison!", team, hp_diff));
+          Netgraphics.add_update
+            (UpdateSteammon(starter.species, starter.curr_hp - hp_diff,
+            starter.max_hp, team));
           process_confused (update_hp starter pdmg)
   | _ -> process_confused starter
       else 
@@ -557,14 +571,14 @@ print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
           let hp_diff = 
             if (int_of_float pdamage) > starter.curr_hp then starter.curr_hp
             else (int_of_float pdamage) in
-          Netgraphics.send_update (NegativeEffect(starter.species,
-            team, hp_diff));
-          Netgraphics.send_update
-            (Message(starter.species ^ " was hurt by poison!"));
-          use_pp (update_hp starter (cPOISON_DAMAGE *.
-          (float_of_int starter.attack) /. (float_of_int starter.defense)))
+          Netgraphics.add_update (NegativeEffect(
+            starter.species ^ "was hurt by poison!", team, hp_diff));
+          Netgraphics.add_update
+            (UpdateSteammon(starter.species, starter.curr_hp - hp_diff,
+            starter.max_hp, team));
+          use_pp (update_hp starter pdamage)
         | _ -> use_pp starter in
-    Netgraphics.send_update
+    Netgraphics.add_update
       (SetStatusEffects(updated_starter.species, updated_starter.status));
     ((process_mods updated_starter)::(List.tl steammon_lst), inventory) in
   (* processes attack power *)
@@ -592,7 +606,6 @@ print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
   | _ -> 1. in
       let hit_attack =
         let chance = float_of_int (Random.int 99) in
-print_endline ("accuracymod: " ^ (string_of_int starter.mods.accuracy_mod) ^ " chance: " ^ (string_of_float chance) ^ " accuracy: " ^ (string_of_int a.accuracy));
         match starter.mods.accuracy_mod with
         | -3 -> (cACCURACY_DOWN3 *. (float_of_int a.accuracy)) > chance
         | -2 -> (cACCURACY_DOWN2 *. (float_of_int a.accuracy)) > chance
@@ -602,7 +615,9 @@ print_endline ("accuracymod: " ^ (string_of_int starter.mods.accuracy_mod) ^ " c
         | 2 -> (cACCURACY_UP2 *. (float_of_int a.accuracy)) > chance
         | 3 -> (cACCURACY_UP3 *. (float_of_int a.accuracy)) > chance
         | _ -> false in
-print_endline ("hit? " ^(string_of_bool hit_attack));
+      if not hit_attack then
+        Netgraphics.add_update (NegativeEffect("Miss!",
+          opposite_color team, 0));
       if (attack_self_if_confused && not (snap_out_of_confused) &&
         List.mem Confused starter.status) ||
         (stuck_if_paralyzed && (List.mem Confused starter.status)) ||
@@ -641,12 +656,12 @@ print_endline ("hit? " ^(string_of_bool hit_attack));
     let updated_steammon = process_status (update_hp starter damage) in
 print_endline ("remaining hp: " ^ (string_of_int updated_steammon.curr_hp));
 print_endline ("damage: " ^ (string_of_int hp_diff));
-    Netgraphics.send_update (NegativeEffect(updated_steammon.species,
+    Netgraphics.add_update (NegativeEffect(updated_steammon.species,
       team, hp_diff));
-    Netgraphics.send_update
+    Netgraphics.add_update
       (UpdateSteammon(updated_steammon.species, updated_steammon.curr_hp,
       updated_steammon.max_hp, team));
-    Netgraphics.send_update
+    Netgraphics.add_update
       (SetStatusEffects(updated_steammon.species, updated_steammon.status));
     (updated_steammon::(List.tl steammon_lst), inventory) in
   match team with
@@ -662,7 +677,7 @@ print_endline ("damage: " ^ (string_of_int hp_diff));
 let use_item (st: state) (team: color) (item: item) (target: steammon) : unit = 
 print_endline ((color_to_string team) ^  " using " ^ (string_of_item item));
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
-  Netgraphics.send_update 
+  Netgraphics.add_update 
     (Message((color_to_string team) ^ " used " ^ (string_of_item item) ^ "!"));
   let apply (steammon: steammon list) =
     List.fold_left (fun acc x ->
@@ -686,13 +701,19 @@ print_endline ((color_to_string team) ^  " using " ^ (string_of_item item));
         {species = target.species;
         curr_hp =
           if item = MaxPotion && target.curr_hp <> 0 then begin
-            Netgraphics.send_update (PositiveEffect(target.species,
+            Netgraphics.add_update (PositiveEffect(target.species,
               team, target.max_hp - target.curr_hp));
+            Netgraphics.add_update
+              (UpdateSteammon(target.species, target.max_hp,
+              target.max_hp, team));
             target.max_hp end
           else if item = Revive then begin
             if target.curr_hp = 0 then begin
-              Netgraphics.send_update (PositiveEffect(target.species,
+              Netgraphics.add_update (PositiveEffect(target.species,
                 team, target.max_hp/2));
+              Netgraphics.add_update
+                (UpdateSteammon(target.species, target.max_hp / 2,
+                target.max_hp, team));
               target.max_hp / 2 end
             else target.curr_hp; end (* revive does nothing *)
           else target.curr_hp;
@@ -745,7 +766,7 @@ print_endline ((color_to_string team) ^  " using " ^ (string_of_item item));
             accuracy_mod = f target.mods.accuracy_mod}
           else target.mods
         else target.mods} in
-      Netgraphics.send_update
+      Netgraphics.add_update
         (SetStatusEffects(updated_steammon.species, updated_steammon.status));
       updated_steammon::acc end
       else x::acc

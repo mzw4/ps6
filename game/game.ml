@@ -31,17 +31,15 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
       (match act with
       | PickSteammon str ->
         State.add_steammon s team (Hashtbl.find steammon_tbl str);
-        Netgraphics.send_update
+        Netgraphics.add_update
           (UpdateSteammon(str, State.get_curr_hp s team str,
           State.get_max_hp s team str, team));
       | PickInventory inventory ->
         State.set_inventory s team inventory;
       | SelectStarter str ->
         State.switch_steammon s team (Hashtbl.find steammon_tbl str);
-        Netgraphics.send_update (SetChosenSteammon(str));
       | SwitchSteammon str ->
         State.switch_steammon s team (Hashtbl.find steammon_tbl str);
-        Netgraphics.send_update (SetChosenSteammon(str));
       | UseItem (item, str) ->
         State.use_item s team item (Hashtbl.find steammon_tbl str);
       | UseAttack str ->
@@ -108,6 +106,7 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
       | (_, (UseItem (item, str))) -> Blue
       | _ -> faster end
     | _ -> faster in
+  Netgraphics.add_update (SetFirstAttacker(priority_team));
   (match priority_team with
   | Red ->
     performStep Red ra g;
