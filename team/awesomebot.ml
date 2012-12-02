@@ -20,41 +20,42 @@ let handle_request c r =
       in
       let pick = try List.find(fun x -> x.curr_hp > 0) lst with _ -> (List.hd lst) in
         SelectStarter(pick.species)
-    | PickRequest(_, _, _, sp) ->
+    | PickRequest(_, gs, _, sp) ->
         let((r_steammon, r_inventory), (b_steammon, b_inventory)) = gs in
         let my_steammon = 
           match c with 
-    | Red -> r_steammon
-    | Blue -> b_steammon in
+          | Red -> r_steammon
+          | Blue -> b_steammon 
+					in
         let stats_tbl = Hashtbl.create 300 in
         List.fold_left (fun acc x ->
           let stats = (x.max_hp / 4) + x.attack + x.spl_attack + x.defense +
             x.spl_defense + x.speed in
-          Hashtbl.add stats_tbl (x.species) (stats, x.first_type, x.second_type)
+          Hashtbl.add stats_tbl (x.species) (x.species, stats, x.first_type, x.second_type)
         ) () sp;
-        if Hashtbl.length > 0 then
+        if Hashtbl.length stats_tbl > 0 then
           (* do not want if already have steammon or
              already have 2 steammon of a type *)
-          let still_want steamons n t1 t2 =
+          let still_want steammons n t1 t2 =
             let rating = List.fold_left (fun acc x ->
               if x.species = n then 2
               else if ((x.first_type = t1 || x.second_type = t1) && t1 <> None) ||
-                       (x.first_type = t2 || x.second_type = t2) && t2 <> None)) then 
+                       ((x.first_type = t2 || x.second_type = t2) && t2 <> None) then 
                 acc + 1
               else acc) 0 steammons in
             (rating < 2) in
           let (name,_,_,_) = 
-            Hashtbl.fold (fun k (n, s, t1, t1) (species, stats) -> 
+            Hashtbl.fold (fun k (n, s, t1, t2) (species, stats, _, _) -> 
               if s > stats && (still_want my_steammon n t1 t2) then
                 (n, s, t1, t2)
-              else acc) stats_tbl ("", 0, Normal, Normal) in name
+              else (species, stats, t1, t2)) stats_tbl ("", 0, Some Normal, None) in PickSteammon name
         else failwith "no steammon available to pick!"
     | ActionRequest (gr) ->
         let (red_data, blue_data) = gr in      
         
         (* returns if an attack is a special attack or physical attack *)
-        let is_special (att: attack) : boolean= 
-            match att.steamtpye with
+        let is_special (att: attack) : bool= 
+            match att.steamtype with
             | Electric
             | Fire 
             | Water
@@ -66,7 +67,7 @@ let handle_request c r =
         (* Calculates the strongest attack based on attacker and defender stats, STAB, and weaknesses*)
         (* outputs a the damage done as a ratio to opponent's hp *)
         let attack_power (attacker: steammon) (defender: steammon) (att: attack) : float =  
-          let mod_attack : float = 
+          let mod_attack = 
             match attacker.mods.attack_mod with
             | -3 -> cATTACK_DOWN3
             | -2 -> cATTACK_DOWN2
@@ -489,16 +490,15 @@ let handle_request c r =
 						let b = attacking_pkmn.mods.accuracy_mod in
 						let c = if (List.mem Confused attacking_pkmn.status) then 1 else 0 in
 						(2 * a + 3 * b + 5 * c) > 6 
+						in
 					if (attacking_pkmn.curr_hp = 0) then
 						Some best_steammon
 					else if (starter_hurt) then
 						Some best_steammon
-					else None
-					
-					
-						
-					
-				let item (attackint_team: team_data) (defending_team: team_data) : (item * steammon) option =
+					else None						
+				  in
+				
+				let item (attacking_team: team_data) (defending_team: team_data) : (item * steammon) option =
 					let attacking_pkmn = List.hd (fst attacking_team) in
 					let defending_pkmn = List.hd (fst defending_team) in
 					let [ethers; max_potions; revives; full_heals; xAttacks; xSpeeds; xDefenses; xAccuracies] = snd attacking_team in
@@ -507,7 +507,7 @@ let handle_request c r =
 						((attacking_pkmn.curr_hp /. attacking_pkmn.max_hp) <= (1. /. 10.))) &&
 						(max_potions > 0)
 						then Some (MaxPotion * attacking_pkmn)
-					else if ((List.length (List.filter (fun s -> s.curr_hp = 0) (fst attacking_team))) > 0) && (revives > 0))
+					else if ((List.length (List.filter (fun s -> s.curr_hp = 0) (fst attacking_team))) > 0) && (revives > 0)
 						then Some (Revive * (List.hd (List.filter (fun s -> s.curr_hp = 0) (fst attacking_team))))
 					else if ((List.mem Paralyzed attacking_pkmn.status) || (List.mem Poisoned attacking_pkmn.status)) && (full_heals > 0)
 						then Some (FullHeal * attacking_pkmn)
@@ -518,7 +518,7 @@ let handle_request c r =
   				| Some s -> SwitchSteammon s.species
   				| None ->
   					match item a b with
-  					| Some (i, s) -> UseItem i s.species
+  					| Some (i, s) -> UseItem (i,s.species)
   					| None -> UseAttack (optimal_attack_helper a b)
   				in
         
