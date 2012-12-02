@@ -109,7 +109,7 @@ let handle_request c r =
             | None -> 1.  
             in
           if (att.pp_remaining = 0) then 0.0
-          else att.power *. power *. stab *. type_multiplier (* *. crit *)
+          else att.power *. power *. stab *. type_multiplier /. defender.curr_hp(* *. crit *)
           in
         
         (* Finds if an attack can poison opponent *)
@@ -307,6 +307,8 @@ let handle_request c r =
           (helper1, helper2)
           in    
         
+				(* calculates the strongest attack an attacker can use *)
+				(* returns a tuple of the attack and the ratio of the attack to the defender's current hp *)			
         let strongest_attack (attacker: steammon) (defender: steammon) : (attack * float) =
           let current = ref attacker.first_attack in
           if (attack_power attacker defender !current) < (attack_power attacker defender attacker.second_attack)
@@ -425,20 +427,104 @@ let handle_request c r =
         let optimal_attack_helper (attacking_team: team_data) (defending_team: team_data) : attack =  
           let attacking_pkmn = List.hd (fst attacking_team) in
           let defending_pkmn = List.hd (fst defending_team) in
-          let optimal = ref attacking_pkmn.first_attack in
-          if (calculate_weights attacking_pkmn defending_pkmn !optimal) < 
-            (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.second_attack)
-            then optimal := attacking_pkmn.second_attack;
-          if (calculate_weights attacking_pkmn defending_pkmn !optimal) < 
-            (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.second_attack)
-            then optimal := attacking_pkmn.third_attack;
-          if (calculate_weights attacking_pkmn defending_pkmn !optimal) < 
-            (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.second_attack)
-            then optimal := attacking_pkmn.fourth_attack;            
-          !optimal                                          
-          in                            
+					let primary = 
+						let optimal = ref attacking_pkmn.first_attack in
+						if (!optimal.pp_remaining < attacking_pkmn.second_attack.pp_remaining) && 
+							(attack_power attacking_pkmn defending_pkmn attacking_pkmn.second_attack >= 1.)
+							then optimal := attacking_pkmn.second_attack;
+						if (!optimal.pp_remaining < attacking_pkmn.third_attack.pp_remaining) && 
+							(attack_power attacking_pkmn defending_pkmn attacking_pkmn.third_attack >= 1.)
+							then optimal := attacking_pkmn.third_attack;
+						if (!optimal.pp_remaining < attacking_pkmn.fourth_attack.pp_remaining) && 
+							(attack_power attacking_pkmn defending_pkmn attacking_pkmn.fourth_attack >= 1.)
+							then optimal := attacking_pkmn.fourth_attack;
+						!optimal
+						in
+					let secondary = 
+            let optimal = ref attacking_pkmn.first_attack in
+            if (calculate_weights attacking_pkmn defending_pkmn !optimal) < 
+              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.second_attack)
+              then optimal := attacking_pkmn.second_attack;
+            if (calculate_weights attacking_pkmn defending_pkmn !optimal) < 
+              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.third_attack)
+              then optimal := attacking_pkmn.third_attack;
+            if (calculate_weights attacking_pkmn defending_pkmn !optimal) < 
+              (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.fourth_attack)
+              then optimal := attacking_pkmn.fourth_attack;            
+            !optimal
+						in 
+					   if (attack_power attacking_pkmn defending_pkmn primary >= 1.) then primary else secondary                                   
+          in 
+				                           
+        let switch (attacking_team: team_data) (defending_team: team_data) : steammon option = 
+					let attacking_pkmn = List.hd (fst attacking_team) in
+					let defending_pkmn = List.hd (fst defending_team) in
+					let team = List.filter (fun s -> s.curr_hp > 0) (List.tl (fst attacking_team)) in
+					let weaknesses (s : steammon) : float =
+						let helper (t : steamtype) : float = 
+  						match defending_pkmn.first_type with
+  						| Some t1 -> begin
+  							match defending_pkmn.second_type with
+  							| Some t2 -> weakness t t1 *. weakness t t2
+  							| None -> weakness t t1
+  							end
+  						| None -> 1.	
+						in
+						match s.first_type with
+						| Some t1 -> begin
+							match defending_pkmn.second_type with
+							| Some t2 -> helper t2 *. helper t1
+							| None -> helper t1
+							end
+						| None -> 1.
+						in
+					let best_steammon = 
+						if List.length team = 1 then
+							List.hd team
+						else	
+							List.fold_left (fun a x -> if (weaknesses a < weaknesses x) then x else a) (List.hd team) (List.tl team)	
+						in
+					let starter_hurt = 
+						let a = attacking_pkmn.mods.attack_mod + attacking_pkmn.mods.speed_mod + attacking_pkmn.mods.defense_mod in
+						let b = attacking_pkmn.mods.accuracy_mod in
+						let c = if (List.mem Confused attacking_pkmn.status) then 1 else 0 in
+						(2 * a + 3 * b + 5 * c) > 6 
+					if (attacking_pkmn.curr_hp = 0) then
+						Some best_steammon
+					else if (starter_hurt) then
+						Some best_steammon
+					else None
+					
+					
+						
+					
+				let item (attackint_team: team_data) (defending_team: team_data) : (item * steammon) option =
+					let attacking_pkmn = List.hd (fst attacking_team) in
+					let defending_pkmn = List.hd (fst defending_team) in
+					let [ethers; max_potions; revives; full_heals; xAttacks; xSpeeds; xDefenses; xAccuracies] = snd attacking_team in
+					if (((snd (strongest_attack defending_pkmn attacking_pkmn) >= 1.0) && 
+						((attacking_pkmn.curr_hp /. attacking_pkmn.max_hp) <= (1. /. 3.))) || 
+						((attacking_pkmn.curr_hp /. attacking_pkmn.max_hp) <= (1. /. 10.))) &&
+						(max_potions > 0)
+						then Some (MaxPotion * attacking_pkmn)
+					else if ((List.length (List.filter (fun s -> s.curr_hp = 0) (fst attacking_team))) > 0) && (revives > 0))
+						then Some (Revive * (List.hd (List.filter (fun s -> s.curr_hp = 0) (fst attacking_team))))
+					else if ((List.mem Paralyzed attacking_pkmn.status) || (List.mem Poisoned attacking_pkmn.status)) && (full_heals > 0)
+						then Some (FullHeal * attacking_pkmn)
+					in
+				
+				let helper (a: team_data) (b: team_data) : action =
+  				match switch a b with
+  				| Some s -> SwitchSteammon s.species
+  				| None ->
+  					match item a b with
+  					| Some (i, s) -> UseItem i s.species
+  					| None -> UseAttack (optimal_attack_helper a b)
+  				in
         
-        
+				match c with
+				| Red -> helper red_data blue_data
+				| Blue -> helper blue_data red_data
         (*
         (match mons with
         | h::t ->
@@ -466,20 +552,20 @@ let handle_request c r =
       let(r_data, b_data) = gs in
       let (steammon, inventory) = 
         match c with 
-  | Red -> r_data
-  | Blue -> b_data in
-      let ethers = 0 in
-      let max_potions = (cash / 2) / cCOST_MAXPOTION in
-      cash := cash - (max_potions * cCOST_MAXPOTION);
-      let revives = (cash / 3) / cCOST_REVIVE in
-      cash := cash - (revives * cCOST_REVIVE);
-      let full_heals = cash / cCOST_FULLHEAL in 
-      cash := cash - (full_heals * cCOST_FULLHEAL);
-      let xattacks = 0 in
-      let xdefenses = 0 in
-      let xaccuracies = 0 in
-      let xspeeds = 0 in
+        | Red -> r_data
+        | Blue -> b_data in
+            let ethers = 0 in
+            let max_potions = (cash / 2) / cCOST_MAXPOTION in
+            cash := cash - (max_potions * cCOST_MAXPOTION);
+            let revives = (cash / 3) / cCOST_REVIVE in
+            cash := cash - (revives * cCOST_REVIVE);
+            let full_heals = cash / cCOST_FULLHEAL in 
+            cash := cash - (full_heals * cCOST_FULLHEAL);
+            let xattacks = 0 in
+            let xdefenses = 0 in
+            let xaccuracies = 0 in
+            let xspeeds = 0 in
       PickInventory(
-  [ethers; max_potions; revives; full_heals;
-  xattacks; xdefenses; xaccuracies; xspeeds])
-let () = run_bot handle_request
+      [ethers; max_potions; revives; full_heals;
+      xattacks; xdefenses; xaccuracies; xspeeds])
+    let () = run_bot handle_request
