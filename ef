@@ -1,0 +1,436 @@
+[33mcommit d50bb303999ee70b0abbfa71ed5c98e1a2d22f95[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Dec 2 07:28:11 2012 -0500
+
+    design doc
+
+[33mcommit 78499503c28ad9bbbc72cef9ee9f67d5829155a9[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Dec 2 06:28:43 2012 -0500
+
+    debugged and tested game/state/bot
+
+[33mcommit 619ea45212e120251d619cc8e33ae19b247c5a38[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Dec 2 06:15:00 2012 -0500
+
+    Update design doc
+
+[33mcommit 4d764e4c7420df6fe848615e688e766eef73c0be[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Dec 2 04:28:09 2012 -0500
+
+    Update state & bot
+    
+    removed tabs
+
+[33mcommit a346b25f73422b4440a745d3d823c7e7cade467b[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Dec 2 04:16:01 2012 -0500
+
+    debugging bot
+
+[33mcommit 416e8ca9e875361a7fcbf3efc17dffe71063889c[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Dec 2 03:52:09 2012 -0500
+
+    debuggin state/game
+    
+    game looks like it works!
+
+[33mcommit 4e260a637b4ecc0106ca8d36a57c0cd5b85ca6b0[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Dec 2 03:49:59 2012 -0500
+
+    update bot
+
+[33mcommit cbd23fee9b8f5303198bd4cf9103afe951c9de69[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Dec 2 02:33:59 2012 -0500
+
+    Update bot
+    
+    compiles
+
+[33mcommit 6c25f455baa6d3c486921d80cfbc696144b61af4[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Dec 2 01:52:46 2012 -0500
+
+    update bot
+
+[33mcommit 7b9a6075108476bbcf47c888996f28f9e0851503[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Dec 2 01:52:01 2012 -0500
+
+    update bot
+
+[33mcommit 82274f98e49754a186c0dde735188cb671270e22[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Dec 2 01:50:48 2012 -0500
+
+    debugged game/state
+
+[33mcommit f8b3ae965bc87a57af660583e20e5499d6de33db[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Dec 2 01:45:49 2012 -0500
+
+    Update bot
+
+[33mcommit 0e63da46541dfe08d43389e9151986d06f6b9279[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Dec 2 01:02:33 2012 -0500
+
+    Update bot
+
+[33mcommit 8ce79d4cb8b602c0d0b739395293a9dab1921cda[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Dec 1 22:48:40 2012 -0500
+
+    Update bot
+
+[33mcommit 9b47c9e9987391886b66a0a49084af6bb845cb4d[m
+Merge: 2634a6d 36dce9d
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sat Dec 1 17:23:41 2012 -0500
+
+    Merge branch 'master' of https://github.com/mzw4/ps6
+
+[33mcommit 2634a6dbbbca8631b079e75122d06374c643e005[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sat Dec 1 17:22:21 2012 -0500
+
+    debugged and compiled attack
+
+[33mcommit 36dce9d0e479c4f2935cb52d9099f9e68e165b71[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Dec 1 15:51:43 2012 -0500
+
+    Update bot
+
+[33mcommit a1c9ff1c6b5f028d4dab1c2673b93d7604931ab3[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sat Dec 1 14:22:13 2012 -0500
+
+    awesomebot
+    
+    pickrequest
+
+[33mcommit 623ee6e7539a88fa37c89a1f9a0b8ef621c53059[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Dec 1 14:17:30 2012 -0500
+
+    update bot
+
+[33mcommit 3e4ae60782c187d9d723539f8f7a67297aeba85e[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Dec 1 13:46:45 2012 -0500
+
+    Update state and bot
+
+[33mcommit 71f5b608921a0fd3a21635987cac0f8e0044e1a4[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Dec 1 13:45:40 2012 -0500
+
+    Update bot and state
+
+[33mcommit 70ad881f3f7e88af32d22378b2eb327b5575018e[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Dec 1 11:03:11 2012 -0500
+
+    Update bot & state
+
+[33mcommit 7a52503f5791a23da6669e2e58e9380e3bd598ac[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Dec 1 02:21:59 2012 -0500
+
+    Update bot
+
+[33mcommit 21c7e0e8f1fbff06e3b4c5489af1bdd3b345a8de[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Fri Nov 30 18:56:13 2012 -0500
+
+    update build_game.sh
+
+[33mcommit 8f6bd9d56bcf53f392931c42ef52ce9151bd573a[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Fri Nov 30 18:25:43 2012 -0500
+
+    Update state
+
+[33mcommit 096e2694171641fe0b2e0fd626e8107ec49f63d2[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Tue Nov 27 12:06:29 2012 -0500
+
+    update state
+    
+    changes it so pokemon are unconfused when sent into battle
+
+[33mcommit 592e9bfb1ceeae68fb964a6aaa7ba2cf4cba12a2[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Tue Nov 27 11:31:14 2012 -0500
+
+    update state
+    
+    finalized attack
+
+[33mcommit 1f3a988746b85f9ccf335f2a26ec290ccae52831[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Tue Nov 27 03:25:18 2012 -0500
+
+    debugged and started bot
+    
+    game and gui work more or less
+    started on awesomebot
+
+[33mcommit 86939022199be7574f27997a3a18353c8a32ab7a[m
+Author: moey509 <mso32@cornell.edu>
+Date:   Tue Nov 27 02:25:32 2012 -0500
+
+    Update game/state.ml
+
+[33mcommit 7ea731d44a51095f04037f677d98b5fd1f8a3b32[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Mon Nov 26 18:34:04 2012 -0500
+
+    Update state
+    
+    updates attack
+
+[33mcommit af9273e97963589fd828706c4cc1e9b5699bb40d[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Mon Nov 26 18:06:48 2012 -0500
+
+    Update State
+
+[33mcommit 5db57e9d5de0fb5b2bc803d092d2ffe2b39fc415[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Mon Nov 26 16:28:19 2012 -0500
+
+    updated attack in game
+
+[33mcommit 1652b4243602ac148236fb10f85a4fad164543c3[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Mon Nov 26 16:11:09 2012 -0500
+
+    started debugging stuff
+    
+    added faster_team in state
+
+[33mcommit 8f1087e3ccf98f092b7885f705d4cbbcbee3a4c4[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Nov 25 23:15:50 2012 -0500
+
+    game/state
+    
+    implemented state.mli
+    -got rid of phase and undrafted_steammon in state so datafication and
+    from_data would work in game
+    -phase was unneeded and added an already_selected function to state so
+    we don't need undrafted_steammon
+    -fixed some syntax stuff
+
+[33mcommit 9f246ef05089e0fdb8ae86dc34b5cd8c7a095c61[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Fri Nov 23 18:45:24 2012 -0500
+
+    state
+    
+    added use_item function witch uses inventory_contains and is_active
+
+[33mcommit 5cd14ac40183ff4d533eeb28cbec8ee571155d8d[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Fri Nov 23 01:56:59 2012 -0500
+
+    game/state
+    
+    game:
+    updated handle_step
+    
+    state:
+    -initialized steammon pool in create instead of None
+    -added team_full, active_fainted, and game_result functions for use in
+    game
+
+[33mcommit a3b9ef4b9612a598cb82d6f25f3d55708f7f99f0[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Thu Nov 22 20:48:55 2012 -0500
+
+    update state
+
+[33mcommit 2106d3c40a71a0d412947cc43a45d488846996b7[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Wed Nov 21 17:19:41 2012 -0500
+
+    Update state
+
+[33mcommit 5a4bc2f115e04b5c7d0d69d906042c01575af1f3[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Nov 18 20:33:21 2012 -0500
+
+    update game
+    
+    deleted empty inventory and steammon setters in init_game because they
+    are already set in State.create
+
+[33mcommit d668d6e98f3244a3bd40a4cbe9d33b91596afe23[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Nov 18 20:31:07 2012 -0500
+
+    update game
+    
+    handle_step maybe finished
+
+[33mcommit 7f30f5e06878bc0e54f7f618a4ef6c4743456eb5[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Nov 18 20:22:21 2012 -0500
+
+    update state
+    
+    added set_inventory
+
+[33mcommit 3efd7c1bf325c3344b9d7fc8c02eeb76a37cc21c[m
+Merge: def07bc f878e3c
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Nov 18 20:13:18 2012 -0500
+
+    Merge branch 'master' of https://github.com/mzw4/ps6
+
+[33mcommit def07bcb965d9a62ba0706d93d7dc55820bb1958[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sun Nov 18 20:11:44 2012 -0500
+
+    update game
+    
+    handle_step
+
+[33mcommit f878e3ccf1eeb8abf41df9f6addce35e5a769cad[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Nov 18 20:05:06 2012 -0500
+
+    Update state
+    
+    removed tabs
+
+[33mcommit 6d3433e696bd7962b93abffdb8fb262cadab50ca[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Nov 18 20:01:16 2012 -0500
+
+    Update state
+
+[33mcommit c224c2159405a2e4ced37ece17d450cc05db40fd[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Nov 18 19:24:59 2012 -0500
+
+    Update Game and State
+    
+    removed tabs
+
+[33mcommit 39b4b1df6184a7a301741614926d7572466cd235[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sun Nov 18 19:21:16 2012 -0500
+
+    Update state
+
+[33mcommit 274a8899498d5ec2e1d129ce48422508f0a5e274[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Nov 17 17:27:30 2012 -0500
+
+    Update state
+
+[33mcommit 2576245cdc0e23feb9999741322132d6388ee1f8[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Nov 17 16:25:23 2012 -0500
+
+    Update state
+
+[33mcommit 0d64843682a81161275b8bc51851187a260ef883[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Nov 17 16:18:32 2012 -0500
+
+    Update state
+
+[33mcommit b7bf53b232ea633c78162d702a39c22db9da7922[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Sat Nov 17 16:17:36 2012 -0500
+
+    update game
+    
+    init_game
+
+[33mcommit f8b5b77d1fc50fd1471cfcc5e7a97a58d3f0452c[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Nov 17 15:15:36 2012 -0500
+
+    Update game
+    
+    handle_step, type game
+
+[33mcommit 1fbc030b58904bc207e396cc7b60b27773cb95d0[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Nov 17 15:02:28 2012 -0500
+
+    Update game
+    
+    handle_step
+
+[33mcommit a2cd216088ebc581dcce540a133e75e29c662017[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Nov 17 14:46:24 2012 -0500
+
+    Update data
+
+[33mcommit 75a93693a857305261b1cbc9c3dea2e34e04fc78[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Nov 17 14:42:18 2012 -0500
+
+    update game
+
+[33mcommit 4162eec6db32970b6e5210b003c9f57655b686b0[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Sat Nov 17 02:10:58 2012 -0500
+
+    Update game
+
+[33mcommit c43833832de68b66183d9cc160f4a3f950f675fa[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Thu Nov 15 21:14:30 2012 -0500
+
+    pdate game and state
+
+[33mcommit ea280680933e67f59359af9064c94d3ea2db3303[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Thu Nov 15 16:21:38 2012 -0500
+
+    update game
+
+[33mcommit 0a33267865de27914ec3ce6e4cf6b4fdb29cb11f[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Thu Nov 15 15:46:03 2012 -0500
+
+    design doc
+
+[33mcommit 5177bbb095c0320e5591d4f37502ac41defaa65e[m
+Author: moey509 <mso32@cornell.edu>
+Date:   Thu Nov 15 15:22:54 2012 -0500
+
+    Update game/state.ml
+
+[33mcommit 6d797a15eedeb2e39f98085c940acf631774e011[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Thu Nov 15 15:11:12 2012 -0500
+
+    Game 1.0
+    
+    Defined some types
+
+[33mcommit a17602e496051607515794543c8bf9096111c007[m
+Author: Matt Oey <mso32@cornell.edu>
+Date:   Thu Nov 15 15:06:46 2012 -0500
+
+    Matt's files
+
+[33mcommit f8c735e466c7431b969e10201a5bac8effe1e48a[m
+Author: Michael Wang <mzw4@cornell.edu>
+Date:   Mon Nov 12 22:09:30 2012 -0500
+
+    git stuff
