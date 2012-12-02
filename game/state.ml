@@ -137,7 +137,7 @@ print_endline ((color_to_string team) ^ " switching to " ^ s.species);
     if (List.exists (fun x -> x.species = s.species && x.curr_hp > 0) lst) then
       let tl = List.filter (fun x -> x.species <> s.species) lst in 
       let starter = 
-	{species = s.species; 
+  {species = s.species; 
         curr_hp = s.curr_hp; 
         max_hp = s.max_hp; 
         first_type = s.first_type; 
@@ -153,10 +153,10 @@ print_endline ((color_to_string team) ^ " switching to " ^ s.species);
         speed = s.speed; 
         status = (List.filter (fun x -> x <> Confused) s.status); 
         mods = {
-	attack_mod = 0;
-	speed_mod = 0;
-	defense_mod = 0;
-	accuracy_mod = 0;}} in
+  attack_mod = 0;
+  speed_mod = 0;
+  defense_mod = 0;
+  accuracy_mod = 0;}} in
       Netgraphics.send_update (SetStatusEffects(starter.species, starter.status));
       Netgraphics.send_update (Message((color_to_string team) ^
         " switched in " ^ starter.species));
@@ -301,7 +301,7 @@ let attack (st: state) (team: color) (a: attack) : unit =
          (List.mem Paralyzed s.status) || (List.mem Frozen s.status))) then s.status
       else stat::s.status in
      set_status s new_status in
-  (* updates mods *)	
+  (* updates mods *)  
   let change_mod (s: steammon) (e:effects) : steammon = 
     let f_up (i: int) : int = 
       if (i = 3) then 3
@@ -312,32 +312,32 @@ let attack (st: state) (team: color) (a: attack) : unit =
     let new_mods = 
       match e with
       | SelfAttackUp1 -> 
-	{attack_mod = (f_up s.mods.attack_mod); speed_mod = s.mods.speed_mod; 
-	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
-      | SelfDefenseUp1 -> 				
-	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-	defense_mod = (f_up s.mods.defense_mod); accuracy_mod = s.mods.accuracy_mod}
+  {attack_mod = (f_up s.mods.attack_mod); speed_mod = s.mods.speed_mod; 
+  defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
+      | SelfDefenseUp1 ->         
+  {attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+  defense_mod = (f_up s.mods.defense_mod); accuracy_mod = s.mods.accuracy_mod}
       | SelfSpeedUp1 ->
-	{attack_mod = s.mods.attack_mod; speed_mod = (f_up s.mods.speed_mod); 
-	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
+  {attack_mod = s.mods.attack_mod; speed_mod = (f_up s.mods.speed_mod); 
+  defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
       | SelfAccuracyUp1 ->
-	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-	defense_mod = s.mods.defense_mod; accuracy_mod = (f_up s.mods.accuracy_mod)} 
+  {attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+  defense_mod = s.mods.defense_mod; accuracy_mod = (f_up s.mods.accuracy_mod)} 
       | OpponentAttackDown1 ->
-	{attack_mod = (f_down s.mods.attack_mod); speed_mod = s.mods.speed_mod; 
-	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
+  {attack_mod = (f_down s.mods.attack_mod); speed_mod = s.mods.speed_mod; 
+  defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}
       | OpponentDefenseDown1 ->
-	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-	defense_mod = (f_down s.mods.defense_mod); accuracy_mod = s.mods.accuracy_mod}
+  {attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+  defense_mod = (f_down s.mods.defense_mod); accuracy_mod = s.mods.accuracy_mod}
       | OpponentSpeedDown1 ->
-	{attack_mod = s.mods.attack_mod; speed_mod = (f_down s.mods.speed_mod); 
-	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}	   
+  {attack_mod = s.mods.attack_mod; speed_mod = (f_down s.mods.speed_mod); 
+  defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod}     
       | OpponentAccuracyDown1  ->
-	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-	defense_mod = s.mods.defense_mod; accuracy_mod = (f_down s.mods.accuracy_mod)}
+  {attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+  defense_mod = s.mods.defense_mod; accuracy_mod = (f_down s.mods.accuracy_mod)}
       | _ ->
-	{attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
-	defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod} in
+  {attack_mod = s.mods.attack_mod; speed_mod = s.mods.speed_mod; 
+  defense_mod = s.mods.defense_mod; accuracy_mod = s.mods.accuracy_mod} in
     {species = s.species; 
     curr_hp = s.curr_hp; 
     max_hp = s.max_hp; 
@@ -371,7 +371,7 @@ let attack (st: state) (team: color) (a: attack) : unit =
     | 1 -> cDEFENSE_UP1
     | 2 -> cDEFENSE_UP2
     | 3 -> cDEFENSE_UP3
-    | _ -> 1. in			
+    | _ -> 1. in      
   (* processes hp changes *)  
   let update_hp (s: steammon) (f : float) : steammon =
     let new_hp = if (s.curr_hp < (int_of_float f)) then 0 
@@ -482,7 +482,7 @@ print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
           | SelfSpeedUp1
           | SelfAccuracyUp1  -> change_mod s status
           | _ -> s
-	else s in
+  else s in
     let process_confused (s: steammon) : steammon = 
       Netgraphics.send_update
         (Message(s.species ^ " is confused..."));
@@ -507,22 +507,22 @@ print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
       let other_status = List.filter (fun x -> x <> Confused) starter.status in 
       if (List.mem Confused starter.status) then
         match other_status with
-	| [Frozen] ->
+  | [Frozen] ->
           if (defrost_if_frozen) then
             process_confused (set_status starter [Confused])
           else 
             starter
-	| [Paralyzed] ->
+  | [Paralyzed] ->
           if (stuck_if_paralyzed) then
             starter
           else 
             process_confused (set_status starter [Confused])
-	| [Asleep] -> 
+  | [Asleep] -> 
           if (wake_up_if_asleep) then
             process_confused (set_status starter [Confused])
           else
             starter
-	| [Poisoned] ->
+  | [Poisoned] ->
           let pdmg = cPOISON_DAMAGE *. 
             (float_of_int starter.attack) /. (float_of_int starter.defense) in
           let hp_diff = 
@@ -533,25 +533,25 @@ print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
           Netgraphics.send_update
             (Message(starter.species ^ " was hurt by poison!"));
           process_confused (update_hp starter pdmg)
-	| _ -> process_confused starter
+  | _ -> process_confused starter
       else 
         match other_status with
-	| [Frozen] ->
+  | [Frozen] ->
           if (defrost_if_frozen) then
             use_pp starter
           else 
             starter
-	| [Paralyzed] ->
+  | [Paralyzed] ->
           if (stuck_if_paralyzed) then
             starter
           else 
             use_pp starter
-	| [Asleep] ->
+  | [Asleep] ->
           if (wake_up_if_asleep) then
             use_pp starter
           else
             starter
-	| [Poisoned] ->
+  | [Poisoned] ->
           let pdamage = (cPOISON_DAMAGE *. 
             (float_of_int starter.attack) /. (float_of_int starter.defense)) in
           let hp_diff = 
@@ -587,9 +587,9 @@ print_endline (s.species ^ " has " ^ (string_of_int new_hp) ^ " hp left.");
         | _ -> 1. in
       let type_multiplier =
         match def_type1, def_type2 with
-	| Some t1, Some t2 -> (weakness a.element t1) *. (weakness a.element t2)
-	| Some t1, None -> (weakness a.element t1)
-	| _ -> 1. in
+  | Some t1, Some t2 -> (weakness a.element t1) *. (weakness a.element t2)
+  | Some t1, None -> (weakness a.element t1)
+  | _ -> 1. in
       let hit_attack =
         let chance = float_of_int (Random.int 99) in
 print_endline ("accuracymod: " ^ (string_of_int starter.mods.accuracy_mod) ^ " chance: " ^ (string_of_float chance) ^ " accuracy: " ^ (string_of_int a.accuracy));
@@ -633,7 +633,7 @@ print_endline ("hit? " ^(string_of_bool hit_attack));
         | OpponentDefenseDown1 -> change_mod s status
         | OpponentSpeedDown1 -> change_mod s status
         | OpponentAccuracyDown1 -> change_mod s status
-	| _ -> s
+  | _ -> s
       else s in    
     let hp_diff =
       if (int_of_float damage) > starter.curr_hp then starter.curr_hp
@@ -722,7 +722,7 @@ print_endline ((color_to_string team) ^  " using " ^ (string_of_item item));
         mods =
         (* applies mod to active steammon even if target is incorrect *)
         if is_active st team x then
-	  let f (i : int) = if i = 3 then 3 else i + 1 in
+    let f (i : int) = if i = 3 then 3 else i + 1 in
           if item = XAttack then 
             {attack_mod = f target.mods.attack_mod;
             speed_mod = target.mods.speed_mod;

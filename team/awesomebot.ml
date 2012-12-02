@@ -105,7 +105,7 @@ let handle_request c r =
               match defender.second_type with
               | Some t2 -> if (att.element = t1 || att.element = t2) then cSTAB_BONUS else 1.
               | None -> if (att.element = t1) then cSTAB_BONUS else 1.
-							end
+              end
             | None -> 1.   
             in
           let type_multiplier = 
@@ -114,7 +114,7 @@ let handle_request c r =
                 match attacker.second_type with
                 | Some t2 -> (weakness att.element t1) *. (weakness att.element t2)
                 | None -> weakness att.element t1
-								end
+                end
             | None -> 1.  
             in
           if (att.pp_remaining = 0) then 0.0
@@ -351,7 +351,7 @@ let handle_request c r =
               | _ -> 1.
               in
             let speed = (float_of_int attacker.speed *. (mod_speed attacker)) /. 
-							(float_of_int defender.speed *. (mod_speed defender)) in
+              (float_of_int defender.speed *. (mod_speed defender)) in
             if (List.mem Paralyzed attacker.status) then
               if (is_paralyzed) then speed
               else speed /. float_of_int cPARALYSIS_SLOW
@@ -366,7 +366,7 @@ let handle_request c r =
           let confuse_weight (chance: float) : float =
             if (is_confused || is_frozen || is_asleep) then 0.
             else ((100. /. float_of_int cSNAP_OUT_OF_CONFUSION) -. 1.) /. 
-							((100. /. float_of_int cSELF_ATTACK_CHANCE) +. 1.) *. chance
+              ((100. /. float_of_int cSELF_ATTACK_CHANCE) +. 1.) *. chance
             in
           let paralysis_weight (chance: float) : float = 
             if (has_status) then 0.
@@ -453,21 +453,21 @@ let handle_request c r =
             in
           let secondary = 
             let optimal = ref attacking_pkmn.fourth_attack in
-						if ((calculate_weights attacking_pkmn defending_pkmn !optimal) < 
+            if ((calculate_weights attacking_pkmn defending_pkmn !optimal) < 
               (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.first_attack)) &&
-							(attacking_pkmn.first_attack.pp_remaining > 0)
+              (attacking_pkmn.first_attack.pp_remaining > 0)
               then optimal := attacking_pkmn.first_attack;
             if ((calculate_weights attacking_pkmn defending_pkmn !optimal) < 
               (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.second_attack)) &&
-							(attacking_pkmn.second_attack.pp_remaining > 0)
+              (attacking_pkmn.second_attack.pp_remaining > 0)
               then optimal := attacking_pkmn.second_attack;
             if ((calculate_weights attacking_pkmn defending_pkmn !optimal) < 
               (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.third_attack)) &&
-							(attacking_pkmn.third_attack.pp_remaining > 0)
+              (attacking_pkmn.third_attack.pp_remaining > 0)
               then optimal := attacking_pkmn.third_attack;
             if ((calculate_weights attacking_pkmn defending_pkmn !optimal) < 
               (calculate_weights attacking_pkmn defending_pkmn attacking_pkmn.fourth_attack)) &&
-							(attacking_pkmn.fourth_attack.pp_remaining > 0)
+              (attacking_pkmn.fourth_attack.pp_remaining > 0)
               then optimal := attacking_pkmn.fourth_attack;            
             !optimal
             in 
@@ -528,7 +528,7 @@ let handle_request c r =
             then Some (Revive , (List.hd (List.filter (fun s -> s.curr_hp = 0) (fst attacking_team))))
           else if ((List.mem Paralyzed attacking_pkmn.status) || (List.mem Poisoned attacking_pkmn.status)) && (full_heals > 0)
             then Some (FullHeal , attacking_pkmn)
-					else None
+          else None
           in
         
         let helper (a: team_data) (b: team_data) : action =
@@ -543,7 +543,7 @@ let handle_request c r =
         match c with 
         | Red -> helper red_data blue_data
         | _ -> helper blue_data red_data
-				end
+        end
         (*
         (match mons with
         | h::t ->
@@ -587,5 +587,5 @@ let handle_request c r =
       PickInventory(
       [ethers; max_potions; revives; full_heals;
       xattacks; xdefenses; xaccuracies; xspeeds])
-			
+      
     let () = run_bot handle_request
