@@ -32,24 +32,29 @@ let handle_request c r =
         List.fold_left (fun acc x ->
           let stats = (x.max_hp / 4) + x.attack + x.spl_attack + x.defense +
             x.spl_defense + x.speed in
-          Hashtbl.add stats_tbl (x.species) (x.species, stats, x.first_type, x.second_type)
+          Hashtbl.add stats_tbl (x.species)
+            (x.species, stats, x.first_type, x.second_type)
         ) () sp;
         if Hashtbl.length stats_tbl > 0 then
           (* do not want if already have steammon or
              already have 2 steammon of a type *)
           let still_want steammons n t1 t2 =
+            let available lst =
+              not (List.exists (fun x -> x.species = n) lst) in
             let rating = List.fold_left (fun acc x ->
               if x.species = n then 2
               else if ((x.first_type = t1 || x.second_type = t1) && t1 <> None) ||
                        ((x.first_type = t2 || x.second_type = t2) && t2 <> None) then 
                 acc + 1
               else acc) 0 steammons in
-            (rating < 2) in
+              available r_steammon && available b_steammon && (rating < 2) in
           let (name,_,_,_) = 
-            Hashtbl.fold (fun k (n, s, t1, t2) (species, stats, _, _) -> 
+            Hashtbl.fold (fun k (n, s, t1, t2) (species, stats, type1, type2) -> 
               if s > stats && (still_want my_steammon n t1 t2) then
                 (n, s, t1, t2)
-              else (species, stats, t1, t2)) stats_tbl ("", 0, Some Normal, None) in PickSteammon name
+              else (species, stats, type1, type2))
+                stats_tbl ("", 0, Some Normal, None) in
+          PickSteammon name
         else failwith "no steammon available to pick!"
     | ActionRequest (gr) ->
         let (red_data, blue_data) = gr in      
@@ -567,14 +572,13 @@ let handle_request c r =
       let (steammon, inventory) = 
         match c with 
         | Red -> r_data
-        | Blue -> b_data 
-				in
+        | Blue -> b_data in
       let ethers = 0 in
       let max_potions = (!cash / 2) / cCOST_MAXPOTION in
       cash := !cash - (max_potions * cCOST_MAXPOTION);
       let revives = (!cash / 3) / cCOST_REVIVE in
       cash := !cash - (revives * cCOST_REVIVE);
-      let full_heals = !cash / cCOST_FULLHEAL in 
+      let full_heals = (!cash / 6) / cCOST_FULLHEAL in 
       cash := !cash - (full_heals * cCOST_FULLHEAL);
       let xattacks = 0 in
       let xdefenses = 0 in
