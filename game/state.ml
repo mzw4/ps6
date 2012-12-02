@@ -36,6 +36,13 @@ let already_selected (st: state) (steammon: steammon) : bool =
     else acc) false lst in
   selected r_steammon ||  selected b_steammon
 
+(* Indicates the number of steammon currently drafted into a team *)
+let num_in_party (st: state) (team: color) : int =
+  let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
+  match team with 
+  | Red -> List.length r_steammon
+  | Blue -> List.length b_steammon
+
 (* Indicates if a team is full and finished with the draft step *)
 let team_full (st: state) (team: color) : bool  = 
   let ((r_steammon, r_inventory), (b_steammon, b_inventory)) = st.game_data in
@@ -124,7 +131,7 @@ let switch_steammon (st: state) (team: color) (s: steammon) : unit =
   let (red_data, blue_data) = st.game_data in
   let helper (t_data: team_data) : team_data =
     let (lst, inventory) = t_data in
-    if (List.mem s lst) then
+    if (List.exists (fun x -> x.species = s.species) lst) then
       let tl = List.filter (fun x -> x.species <> s.species) lst in 
       let starter = 
 	{species = s.species; 
@@ -147,6 +154,7 @@ let switch_steammon (st: state) (team: color) (s: steammon) : unit =
 	speed_mod = 0;
 	defense_mod = 0;
 	accuracy_mod = 0;}} in
+      Netgraphics.send_update (SetStatusEffects(starter.species, starter.status));
       (starter::tl, inventory)
     else
       failwith "Steammon selected is not in the team."
@@ -300,7 +308,7 @@ let attack (st: state) (team: color) (a: attack) : unit =
     let f_up (i: int) : int = 
       if (i = 3) then 3
         else i + 1 in
-    let f_down (i:int) : int = 
+    let f_down (i: int) : int = 
       if (i = -3) then -3
         else i - 1 in
     let new_mods = 
@@ -476,10 +484,23 @@ let attack (st: state) (team: color) (a: attack) : unit =
           | _ -> s
 	else s in
     let process_confused (s: steammon) : steammon = 
-      if snap_out_of_confused then
-        use_pp (set_status s (List.filter (fun x -> x <> Confused) s.status))        
+      Netgraphics.send_update
+        (Message(s.species ^ " is confused..."));
+      if snap_out_of_confused then begin
+        Netgraphics.send_update
+          (Message(s.species ^ " snapped out of confusion!"));
+        use_pp (set_status s (List.filter (fun x -> x <> Confused) s.status))
+        end        
       else if attack_self_if_confused then
-        update_hp s (float_of_int (cSELF_ATTACK_POWER * s.attack / s.defense))
+        let self_dmg = float_of_int (cSELF_ATTACK_POWER * s.attack / s.defense) in
+        let hp_diff =
+          if (int_of_float self_dmg) > s.curr_hp then s.curr_hp
+          else (int_of_float self_dmg) in
+        Netgraphics.send_update (NegativeEffect(s.species,
+          team, hp_diff));
+        Netgraphics.send_update
+          (Message(s.species ^ " hurt itself in confusion!"));
+        update_hp s self_dmg
       else use_pp s in  
     let updated_starter =
       let other_status = List.filter (fun x -> x <> Confused) starter.status in 
@@ -501,9 +522,17 @@ let attack (st: state) (team: color) (a: attack) : unit =
           else
             starter
 	| [Poisoned] ->
-          process_confused (update_hp starter (cPOISON_DAMAGE *.
-          (float_of_int starter.attack) /. (float_of_int starter.defense)))
-	| _ -> process_confused starter    
+          let pdmg = cPOISON_DAMAGE *. 
+            (float_of_int starter.attack) /. (float_of_int starter.defense) in
+          let hp_diff = 
+            if (int_of_float pdmg) > starter.curr_hp then starter.curr_hp
+            else (int_of_float pdmg) in
+          Netgraphics.send_update (NegativeEffect(starter.species,
+            team, hp_diff));
+          Netgraphics.send_update
+            (Message(starter.species ^ " was hurt by poison!"));
+          process_confused (update_hp starter pdmg)
+	| _ -> process_confused starter
       else 
         match other_status with
 	| [Frozen] ->
@@ -522,9 +551,20 @@ let attack (st: state) (team: color) (a: attack) : unit =
           else
             starter
 	| [Poisoned] ->
+          let pdamage = (cPOISON_DAMAGE *. 
+            (float_of_int starter.attack) /. (float_of_int starter.defense)) in
+          let hp_diff = 
+            if (int_of_float pdamage) > starter.curr_hp then starter.curr_hp
+            else (int_of_float pdamage) in
+          Netgraphics.send_update (NegativeEffect(starter.species,
+            team, hp_diff));
+          Netgraphics.send_update
+            (Message(starter.species ^ " was hurt by poison!"));
           use_pp (update_hp starter (cPOISON_DAMAGE *.
           (float_of_int starter.attack) /. (float_of_int starter.defense)))
         | _ -> use_pp starter in
+    Netgraphics.send_update
+      (SetStatusEffects(updated_starter.species, updated_starter.status));
     ((process_mods updated_starter)::(List.tl steammon_lst), inventory) in
   (* processes attack power *)
   let attack_power (attacker: team_data) (defender: team_data) : float = 
@@ -578,8 +618,8 @@ let attack (st: state) (team: color) (a: attack) : unit =
     let starter = List.hd steammon_lst in (* active defending steammon *)
     let process_status (s:steammon) = 
       let (status, prob) = a.effect in
-      if (Random.int 99) < prob then s
-      else match status with
+      if (Random.int 99) < prob then
+        match status with
         | Poisons -> add_status s Poisoned
         | Confuses -> add_status s Confused
         | Sleeps -> add_status s Asleep
@@ -589,8 +629,16 @@ let attack (st: state) (team: color) (a: attack) : unit =
         | OpponentDefenseDown1 -> change_mod s status
         | OpponentSpeedDown1 -> change_mod s status
         | OpponentAccuracyDown1 -> change_mod s status
-	| _ -> s in    
+	| _ -> s
+      else s in    
+    let hp_diff =
+      if (int_of_float damage) > starter.curr_hp then starter.curr_hp
+      else int_of_float damage in
     let updated_steammon = process_status (update_hp starter damage) in
+    Netgraphics.send_update (NegativeEffect(updated_steammon.species,
+      team, hp_diff));
+    Netgraphics.send_update
+      (SetStatusEffects(updated_steammon.species, updated_steammon.status));
     (updated_steammon::(List.tl steammon_lst), inventory) in
   match team with
   | Red -> set_game_data st 
@@ -608,72 +656,57 @@ let use_item (st: state) (team: color) (item: item) (target: steammon) : unit =
     List.fold_left (fun acc x ->
     if x.species = target.species || item = XAttack || item = XDefense 
       || item = XSpeed || item = XAccuracy then begin
-      let pp_rem (attack: attack) = 
-        match attack with
-        {max_pp = max; pp_remaining = pp} -> if pp + 5 >= max then max
-        else pp + 5 in
+      let use_ether (attack: attack) = 
+        let pp_rem = 
+          match attack with
+          {max_pp = max; pp_remaining = pp} -> if pp + 5 >= max then max
+            else pp + 5 in
+        {name = attack.name;
+        element = attack.element;
+        max_pp = attack.max_pp;
+        pp_remaining = pp_rem;
+        power = attack.power;
+        accuracy = attack.accuracy;
+        crit_chance = attack.crit_chance;
+        effect = attack.effect} in
       (* a steammon with updated values after applying item effects *)
       let updated_steammon = 
         {species = target.species;
         curr_hp =
-          if item = MaxPotion then target.max_hp
-          else if item = Revive then
-            if target.curr_hp = 0 then target.max_hp / 2
-            else failwith "cannot use revive on a non-fainted steammon"
+          if item = MaxPotion && target.curr_hp <> 0 then begin
+            Netgraphics.send_update (PositiveEffect(target.species,
+              team, target.max_hp - target.curr_hp));
+            target.max_hp end
+          else if item = Revive then begin
+            if target.curr_hp = 0 then begin
+              Netgraphics.send_update (PositiveEffect(target.species,
+                team, target.max_hp/2));
+              target.max_hp / 2 end
+            else target.curr_hp; end (* revive does nothing *)
           else target.curr_hp;
         max_hp = target.max_hp;
         first_type = target.first_type;
         second_type = target.second_type; 
         first_attack = 
-          if item = Ether then
-            {name = target.first_attack.name;
-            element = target.first_attack.element;
-            max_pp = target.first_attack.max_pp;
-            pp_remaining = pp_rem (target.first_attack);
-            power = target.first_attack.power;
-            accuracy = target.first_attack.accuracy;
-            crit_chance = target.first_attack.crit_chance;
-            effect = target.first_attack.effect}
+          if item = Ether then use_ether target.first_attack
           else target.first_attack;
         second_attack = 
-          if item = Ether then
-            {name = target.second_attack.name;
-            element = target.second_attack.element;
-            max_pp = target.second_attack.max_pp;
-            pp_remaining = pp_rem (target.second_attack);
-            power = target.second_attack.power;
-            accuracy = target.second_attack.accuracy;
-            crit_chance = target.second_attack.crit_chance;
-            effect = target.second_attack.effect}
+          if item = Ether then use_ether target.second_attack
           else target.second_attack;
         third_attack =
-          if item = Ether then
-            {name = target.third_attack.name;
-            element = target.third_attack.element;
-            max_pp = target.third_attack.max_pp;
-            pp_remaining = pp_rem (target.third_attack);
-            power = target.third_attack.power;
-            accuracy = target.third_attack.accuracy;
-            crit_chance = target.third_attack.crit_chance;
-            effect = target.third_attack.effect}
+          if item = Ether then use_ether target.third_attack
           else target.third_attack;
         fourth_attack =
-          if item = Ether then
-            {name = target.fourth_attack.name;
-            element = target.fourth_attack.element;
-            max_pp = target.fourth_attack.max_pp;
-            pp_remaining = pp_rem (target.fourth_attack);
-            power = target.fourth_attack.power;
-            accuracy = target.fourth_attack.accuracy;
-            crit_chance = target.fourth_attack.crit_chance;
-            effect = target.fourth_attack.effect}
+          if item = Ether then use_ether target.fourth_attack
           else target.fourth_attack;
         attack = target.attack;
         spl_attack = target.spl_attack;
         defense = target.defense;
         spl_defense = target.spl_defense;
         speed = target.speed;
-        status = if item = FullHeal then [] else target.status;
+        status =
+          if item = FullHeal || item = Revive then []
+          else target.status;
         mods =
         (* applies mod to active steammon even if target is incorrect *)
         if is_active st team x then
@@ -700,6 +733,8 @@ let use_item (st: state) (team: color) (item: item) (target: steammon) : unit =
             accuracy_mod = f target.mods.accuracy_mod}
           else target.mods
         else target.mods} in
+      Netgraphics.send_update
+        (SetStatusEffects(updated_steammon.species, updated_steammon.status));
       updated_steammon::acc end
       else x::acc
     ) [] steammon in

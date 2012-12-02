@@ -12,6 +12,7 @@ let attack_of_string str = Hashtbl.find attack_tbl str
 let steammon_of_string str = Hashtbl.find steammon_tbl str
 let attack_set = Hashtbl.fold (fun k v acc -> v::acc) attack_tbl []
 let steammon_pool = ref []
+let first_picker = ref Red
 
 let print_steammon_pool () = List.fold_left (fun acc x -> print_endline (x.species)) () !steammon_pool
 
@@ -24,50 +25,84 @@ let game_datafication (g:game) : game_status_data = g.game_data
 (*add gui updates *)
 let handle_step (g:game) (ra:command) (ba:command) : game_output =
   print_endline "HANDLIN";
-  let helper (team: color) (c:command) (s:game) : command option =
+  let performStep (team: color) (c: command) (s:game) : unit =
+    print_endline( "performing step for " ^ (color_to_string team));
+      if team = Red then (match c with
+      | Action(PickSteammon str) -> print_endline ("it was pick for Red")
+      | _ -> print_endline ("not a pick for red"));
     match c with
-    | Action act -> 
-      let request = (match act with
+    | Action act ->
+      print_endline "Matching action";
+      (match act with
       | PickSteammon str ->
+        print_endline ("adding " ^ str ^ " for " ^ (color_to_string team));
         State.add_steammon s team (Hashtbl.find steammon_tbl str);
         Netgraphics.send_update
           (UpdateSteammon(str, State.get_curr_hp s team str,
           State.get_max_hp s team str, team));
-        if State.team_full s team then
-          PickInventoryRequest(s.game_data)
-        else
-          PickRequest(team, s.game_data, attack_set, !steammon_pool)
       | PickInventory inventory ->
         State.set_inventory s team inventory;
-        StarterRequest(s.game_data)
       | SelectStarter str ->
         State.switch_steammon s team (Hashtbl.find steammon_tbl str);
         Netgraphics.send_update (SetChosenSteammon(str));
-        ActionRequest(s.game_data)
       | SwitchSteammon str ->
         State.switch_steammon s team (Hashtbl.find steammon_tbl str);
         Netgraphics.send_update (SetChosenSteammon(str));
-        ActionRequest(s.game_data)
-      | UseItem (item, str) -> (* remember status effect gui updates *)
+      | UseItem (item, str) ->
         State.use_item s team item (Hashtbl.find steammon_tbl str);
-        ActionRequest(s.game_data)
       | UseAttack str ->
-        State.attack s team (Hashtbl.find attack_tbl str);
-        if State.active_fainted s team then 
-          StarterRequest(s.game_data)
+        State.attack s team (Hashtbl.find attack_tbl str);)
+    | _ -> print_endline "OMG"; () in
+  let nextRequest (team: color) (c:command) (s:game) : command option =
+    match c with
+    | Action act ->
+      (match act with
+      | PickSteammon str ->
+        if State.num_in_party s team = 1 && (* identifies first picker *)
+           State.num_in_party s (opposite_color team) = 0 then
+          first_picker := team;
+        if (State.num_in_party s team = cNUM_PICKS) then
+          Some(Request(PickInventoryRequest(s.game_data)))
+        else if (team = !first_picker && ((State.num_in_party s team) mod 3 = 0 ||
+                (State.num_in_party s team = 1))) ||
+                (team <> !first_picker && (State.num_in_party s team) mod 2 = 0) then
+          None
         else
-          ActionRequest(s.game_data)) in
-      Some(Request(request))
-    | _ -> 
-      if not (State.team_full s team) then
+          Some(Request(PickRequest(team, s.game_data, attack_set, !steammon_pool)))
+      | PickInventory inventory ->
+        Some(Request(StarterRequest(s.game_data)))
+      | SelectStarter str ->
+        Some(Request(ActionRequest(s.game_data)))
+      | SwitchSteammon str ->
+        Some(Request(ActionRequest(s.game_data)))
+      | UseItem (item, str) ->
+        Some(Request(ActionRequest(s.game_data)))
+      | UseAttack str ->
+        if State.active_fainted s team then
+          Some(Request(StarterRequest(s.game_data)))
+        else
+          Some(Request(ActionRequest(s.game_data))))
+    | DoNothing ->
+      if (State.num_in_party s team = cNUM_PICKS) then
+        Some(Request(ActionRequest(s.game_data)))
+      else if (State.num_in_party s team) = 0 ||
+         (team = !first_picker && ((State.num_in_party s team) = 1 ||
+         (State.num_in_party s team) mod 3 = 0) &&
+         (State.num_in_party s (opposite_color team)) mod 2 = 0) ||
+         (team <> !first_picker && (State.num_in_party s team) mod 2 = 0 &&
+         ((State.num_in_party s (opposite_color team)) mod 3 = 0 ||
+         (State.num_in_party s (opposite_color team)) = 1 ||
+         (State.num_in_party s (opposite_color team)) = cNUM_PICKS)) then
         Some(Request(PickRequest(team, s.game_data, attack_set, !steammon_pool)))
-      else None (* ignores command *) in
+      else
+        None
+    | _ -> None (* ignores command *) in
   (* determines which teams has action priority *)
-  let priority_team = 
+  let priority_team =
     let faster = State.faster_team g in
-    match ra, ba with 
+    match ra, ba with
     | ((Action act1), (Action act2)) -> begin
-      match act1, act2 with 
+      match act1, act2 with
       | ((SwitchSteammon str), (SwitchSteammon str2)) -> faster
       | ((SwitchSteammon str),_) -> Red
       | (_,(SwitchSteammon str)) -> Blue
@@ -76,14 +111,15 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
       | (_, (UseItem (item, str))) -> Blue
       | _ -> faster end
     | _ -> faster in
-  let (redRequest, blueRequest) = 
-    match priority_team with 
-    | Red -> 
-      let r1 = helper Red ra g in
-      let r2 = helper Blue ba g in (r1, r2)
-    | Blue ->
-      let r1 = helper Blue ba g in
-      let r2 = helper Red ra g in (r2, r1) in
+  (match priority_team with
+  | Red ->
+    performStep Red ra g;
+    performStep Blue ba g
+  | Blue ->
+    performStep Blue ba g;
+    performStep Red ra g);
+  let redRequest = nextRequest Red ra g in
+  let blueRequest =  nextRequest Blue ba g in
   let result = State.game_result g in
 
   State.print_steammon g; (* delete *)
@@ -100,6 +136,7 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
     | _ -> print_endline "other blue request");
 
   (result, g.game_data, redRequest, blueRequest)
+
 
 let init_game () =
   let alines = read_lines "./attack.txt" in
@@ -146,7 +183,8 @@ let init_game () =
     ) [] slines in
   steammon_pool := steammon;
   let first_pick = 
-    if (Random.float 1.) > 0.5 then Red else Blue in
+    if Random.bool () = true then Red else Blue in
+  print_endline ((color_to_string first_pick) ^ "gets first pick!");
   let new_game = State.create () in
   Netgraphics.add_update (InitGraphics);
   (new_game, first_pick, attacks, steammon)
