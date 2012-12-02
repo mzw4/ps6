@@ -120,16 +120,6 @@ let handle_step (g:game) (ra:command) (ba:command) : game_output =
 
   State.print_steammon g; (* delete *)
   State.print_inventory g;
-    (* (match redRequest with *)
-    (* | Some(Request(PickRequest (_,_,_,_))) -> print_endline "It's a red pick request!" *)
-    (* | Some(Request(StarterRequest (_))) -> print_endline "It's a red starter request!" *)
-    (* | _ -> print_endline "other red request"); *)
-    
-    (* (match blueRequest with *)
-    (* | Some(Request(PickRequest (_,_,_,_))) -> print_endline "It's a blue pick request!" *)
-    (* | Some(Request(StarterRequest (_))) -> print_endline "It's a blue starter request!" *)
-    (* | None -> print_endline "blue does nothing!" *)
-    (* | _ -> print_endline "other blue request"); *)
 
   (result, g.game_data, redRequest, blueRequest)
 
